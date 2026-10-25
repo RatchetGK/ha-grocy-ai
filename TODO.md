@@ -42,7 +42,8 @@ Erledigtes abhaken, neue Erkenntnisse sofort unter „Erkenntnisse“ eintragen.
 - [x] Events `grocy_ai_stock_added`, `grocy_ai_stock_consumed`, `grocy_ai_barcode_unknown`, `grocy_ai_error`
 - [x] Tests mit gemockter API (aioclient_mock) – 24 grün
 - [x] Übersetzte Fehlermeldungen (de/en), Standard-Haltbarkeit selbst berechnet
-- [ ] Release v0.2.0, HACS-Update (nach Freigabe), HA-Neustart (nach Freigabe)
+- [x] Release v0.2.0, HACS-Update + HA-Neustart (mit Freigabe), Integration geladen, 3 Dienste registriert
+- [x] Live-Smoke-Test: `scan` mit unbekanntem Barcode → „Barcode … is not known in Grocy“ (Verbindung + Fehlerpfad ok)
 - [ ] Manuelle Abnahme in HA: Testprodukt mit Barcode anlegen, Plus/Minus über Entwicklerwerkzeuge → Aktionen
 
 ## M3 – MHD per Foto (v0.3.0)
@@ -91,3 +92,4 @@ Erledigtes abhaken, neue Erkenntnisse sofort unter „Erkenntnisse“ eintragen.
 - 2026-10-25: Config-Entry `grocy_ai` mit `http://a0d7b954-grocy` eingerichtet, Status `loaded` → interne Verbindung HA Core → Grocy-Add-on bestätigt.
 - 2026-10-25: Grocy-API `POST …/add` setzt ohne `best_before_date` das **heutige** Datum (nicht die Standard-Haltbarkeit). grocy_ai berechnet das Datum aus `default_best_before_days` (-1/0 → 2999-12-31). Unbekannter Barcode/Produkt → HTTP 400 mit `error_message`.
 - 2026-10-25: `aioclient_mock.mock_calls` speichert die HTTP-Methode großgeschrieben (`POST`).
+- 2026-10-25: Fehlermeldungen kommen über ha-mcp/API auf Englisch (Sprache des API-Aufrufers); in der deutschen HA-UI erscheinen die de-Übersetzungen.
