@@ -44,6 +44,7 @@ Erledigtes abhaken, neue Erkenntnisse sofort unter „Erkenntnisse“ eintragen.
 - [x] Übersetzte Fehlermeldungen (de/en), Standard-Haltbarkeit selbst berechnet
 - [x] Release v0.2.0, HACS-Update + HA-Neustart (mit Freigabe), Integration geladen, 3 Dienste registriert
 - [x] Live-Smoke-Test: `scan` mit unbekanntem Barcode → „Barcode … is not known in Grocy“ (Verbindung + Fehlerpfad ok)
+- [ ] Vorschlag (Entscheidung Nutzer): Unbekannte Barcodes bei Plus automatisch über Grocys externen Lookup (Open Food Facts, `GET /stock/barcodes/external-lookup/{barcode}?add=true`) anlegen, abschaltbar im Options-Flow
 - [ ] Manuelle Abnahme in HA: Testprodukt mit Barcode anlegen, Plus/Minus über Entwicklerwerkzeuge → Aktionen
 
 ## M3 – MHD per Foto (v0.3.0)
@@ -93,3 +94,4 @@ Erledigtes abhaken, neue Erkenntnisse sofort unter „Erkenntnisse“ eintragen.
 - 2026-10-25: Grocy-API `POST …/add` setzt ohne `best_before_date` das **heutige** Datum (nicht die Standard-Haltbarkeit). grocy_ai berechnet das Datum aus `default_best_before_days` (-1/0 → 2999-12-31). Unbekannter Barcode/Produkt → HTTP 400 mit `error_message`.
 - 2026-10-25: `aioclient_mock.mock_calls` speichert die HTTP-Methode großgeschrieben (`POST`).
 - 2026-10-25: Fehlermeldungen kommen über ha-mcp/API auf Englisch (Sprache des API-Aufrufers); in der deutschen HA-UI erscheinen die de-Übersetzungen.
+- 2026-10-25: grocy_ai fragt beim Scannen bisher nur Grocys eigene Produktdatenbank ab. Grocy hat aber einen eingebauten externen Barcode-Lookup (Plugin `OpenFoodFactsBarcodeLookupPlugin`, Standard aktiv), per API `GET /api/stock/barcodes/external-lookup/{barcode}?add=true` → legt Produkt an und liefert die neue ID (200 mit `null`, wenn nichts gefunden).
