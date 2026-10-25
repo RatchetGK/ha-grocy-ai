@@ -53,7 +53,7 @@ async def setup_entry(hass: HomeAssistant, aioclient_mock: AiohttpClientMocker) 
 def _posted(aioclient_mock: AiohttpClientMocker, suffix: str) -> dict:
     """Return the JSON body of the POST request whose URL ends with ``suffix``."""
     for method, url, data, _ in aioclient_mock.mock_calls:
-        if method == "post" and str(url).endswith(suffix):
+        if method.lower() == "post" and str(url).endswith(suffix):
             return data
     raise AssertionError(f"no POST to {suffix}")
 
