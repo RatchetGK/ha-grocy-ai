@@ -5,6 +5,18 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
+
+## [0.2.0] - 2026-10-25
+### Added
+- Services `grocy_ai.add_stock`, `grocy_ai.consume_stock` and `grocy_ai.scan`
+  (barcode or product ID, amount, optional best-before date, price, location,
+  spoiled) with service responses.
+- Events `grocy_ai_stock_added`, `grocy_ai_stock_consumed`,
+  `grocy_ai_barcode_unknown` and `grocy_ai_error`.
+- Without a best-before date the product's default shelf life from Grocy is
+  applied (`-1`/`0` → never expires); Grocy's API alone would use today.
+- Translated error messages (English, German).
+
 ### Changed
 - Config flow URL hint now names the Grocy add-on URL and that the add-on
   needs a network port for direct access.

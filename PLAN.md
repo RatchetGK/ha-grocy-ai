@@ -88,17 +88,22 @@ flowchart LR
 
 ### 4.1 Plus-Buchung mit Foto
 1. Auslöser ruft `grocy_ai.add_stock` mit `barcode`, `amount`, optional `image`.
-2. `GrocyClient.get_product_by_barcode(barcode)` → Produkt (404 → Event
-   `grocy_ai_barcode_unknown`, Service-Fehler).
+2. `GrocyClient.get_product_by_barcode(barcode)` bzw. `get_product(id)` →
+   Produktdetails (Grocy antwortet bei unbekanntem Barcode mit **400** → Event
+   `grocy_ai_barcode_unknown`, `ServiceValidationError`).
 3. Wenn `best_before_date` übergeben → direkt verwenden. Sonst wenn `image` →
    `ai_task.generate_data` (Anhang, Struktur `{best_before_date, product_name,
    amount, confidence}`) → Datum validieren (Format, plausibel: nicht > 15 Jahre
    in der Zukunft, nicht deutlich in der Vergangenheit) → bei Fehler Fallback +
    Event `grocy_ai_best_before_failed`.
-4. Sonst kein Datum übergeben → Grocy setzt Standard-Haltbarkeit des Produkts
-   (`default_best_before_days`; `-1` = läuft nie ab).
-5. `POST /api/stock/products/by-barcode/{barcode}/add`.
-6. Event `grocy_ai_stock_added`, Coordinator-Refresh.
+4. Sonst berechnet **grocy_ai** das Datum selbst (Grocys API würde ohne Datum
+   *heute* setzen; die Standard-Haltbarkeit wendet nur die Grocy-UI an):
+   `default_best_before_days > 0` → heute + Tage (`default`); `-1` →
+   `2999-12-31` (`never`); `0`/leer → `2999-12-31` (`unset`, damit keine
+   Fehlalarme entstehen; Tablet kann nachfragen).
+5. `POST /api/stock/products/{id}/add` (`transaction_type: purchase`), danach
+   `GET /api/stock/products/{id}` für den neuen Bestand.
+6. Event `grocy_ai_stock_added` (später: Coordinator-Refresh).
 
 ### 4.2 Minus-Buchung
 `grocy_ai.consume_stock` → `POST /api/stock/products/by-barcode/{barcode}/consume`
@@ -133,9 +138,9 @@ Stabile Schnittstelle für Tablet-App und Taster. Änderungen = SemVer-Minor
 
 | Service | Felder | Antwort (`response`) |
 |---|---|---|
-| `grocy_ai.add_stock` | `barcode`/`product_id`, `amount` (Std. 1), `best_before_date` (opt.), `image` (opt., Media-Selector), `price` (opt.), `location_id` (opt.) | `{product_id, product_name, amount, best_before_date, best_before_source: manual\|ai\|default}` |
-| `grocy_ai.consume_stock` | `barcode`/`product_id`, `amount` (Std. 1), `spoiled` (Std. false) | `{product_id, product_name, amount, stock_amount}` |
-| `grocy_ai.scan` | `barcode`, `mode: plus\|minus`, `amount`, `image` (opt.) | wie add/consume – Komfort-Service für Taster/Tablet |
+| `grocy_ai.add_stock` ✅ v0.2.0 | `barcode`/`product_id` (genau eins), `amount` (Std. 1, > 0), `best_before_date` (opt.), `price` (opt.), `location_id` (opt.), `config_entry_id` (opt.); `image` ab v0.3.0 | `{product_id, product_name, barcode, amount, best_before_date, best_before_source: manual\|default\|never\|unset (ab M3: ai), stock_amount}` |
+| `grocy_ai.consume_stock` ✅ v0.2.0 | `barcode`/`product_id` (genau eins), `amount` (Std. 1), `spoiled` (Std. false), `config_entry_id` (opt.) | `{product_id, product_name, barcode, amount, spoiled, stock_amount}` |
+| `grocy_ai.scan` ✅ v0.2.0 | `barcode`, `mode: plus\|minus`, `amount`, `config_entry_id` (opt.); `image` ab v0.3.0 | wie add/consume – Komfort-Service für Taster/Tablet |
 | `grocy_ai.read_best_before` | `image` | `{best_before_date, product_name, amount, confidence}` – nur Erkennung, keine Buchung |
 | `grocy_ai.sync_shopping_list` | – | `{added: [...], skipped: [...]}` |
 | `grocy_ai.check_expiring` | `days` (opt.), `notify` (Std. true) | `{expiring: [...], expired: [...]}` |
@@ -144,7 +149,7 @@ Stabile Schnittstelle für Tablet-App und Taster. Änderungen = SemVer-Minor
 
 | Event | Daten |
 |---|---|
-| `grocy_ai_stock_added` | `product_id, product_name, barcode, amount, best_before_date, best_before_source` |
+| `grocy_ai_stock_added` | `product_id, product_name, barcode, amount, best_before_date, best_before_source, stock_amount` |
 | `grocy_ai_stock_consumed` | `product_id, product_name, barcode, amount, spoiled, stock_amount` |
 | `grocy_ai_barcode_unknown` | `barcode, mode` (Tablet kann Produkt-Anlage anbieten) |
 | `grocy_ai_best_before_failed` | `barcode, reason` |
@@ -188,12 +193,14 @@ Stabile Schnittstelle für Tablet-App und Taster. Änderungen = SemVer-Minor
   Release v0.1.0 mit `grocy_ai.zip` (neu erstellt im öffentlichen Repo, D13).
   HACS-Installation in HA steht noch aus.
 
-### M2 – Grocy-Anbindung & Barcode-Buchung (v0.2.0)
+### M2 – Grocy-Anbindung & Barcode-Buchung (v0.2.0) ✅ umgesetzt 2026-10-25 (Live-Abnahme offen)
 - `GrocyClient` (Produkt per Barcode, add, consume, volatile), Fehlerklassen.
 - Services `add_stock`, `consume_stock`, `scan` + Events.
 - **Abnahme:** Mit installiertem Grocy: Plus/Minus per Service in den
   Entwicklerwerkzeugen ändert Bestand in Grocy; unbekannter Barcode feuert
   `grocy_ai_barcode_unknown`; Tests mit gemockter API.
+- **Ergebnis:** Services + Events umgesetzt, 24 Tests grün. Fehler sind
+  übersetzt (de/en) und feuern `grocy_ai_error`.
 
 ### M3 – MHD per Foto (v0.3.0)
 - `read_best_before` + `image` in `add_stock`/`scan` über `ai_task`.
@@ -225,6 +232,7 @@ Stabile Schnittstelle für Tablet-App und Taster. Änderungen = SemVer-Minor
 | Grocy-Add-on aktiviert den Direktzugriff (Port 80) **nur**, wenn im Add-on ein Netzwerk-Port gesetzt ist; sonst nur Ingress → „Verbindung fehlgeschlagen“. | Port gesetzt (9192); Hinweis im Config-Flow-Text und README. |
 | KI liest MHD falsch (Formate „31.12.26“, „12/2026“, nur Monat/Jahr). | Prompt mit Formatregeln, Monats-Datum → letzter Tag des Monats, Plausibilitätsprüfung, `confidence` im Ergebnis, Fallback. |
 | Bring!-Artikelnamen weichen von Grocy-Namen ab (Duplikat mit anderem Wortlaut). | Normalisierter Vergleich + eigener Store; später optional Mapping-Feld/Grocy-Userfield. |
+| Barcode-Packungsgrößen (`product_barcodes.amount`) und Tara-Gewicht werden noch nicht berücksichtigt – `amount` ist immer in der Bestandseinheit. | Bei Bedarf in M6 ergänzen (Grocy-UI-Verhalten nachbauen). |
 | Unbekannte Barcodes (Produkt fehlt in Grocy). | Event für Tablet; Produktanlage evtl. später (Open Food Facts) – nicht in M2. |
 | `pytest-homeassistant-custom-component` läuft unter Windows nur eingeschränkt. | Tests lokal via `uv` + Python 3.14 versuchen; maßgeblich ist CI (Linux). |
 | HACS-Validierung „brands“ verlangt Eintrag im home-assistant/brands-Repo. | Check in CI ignoriert (`ignore: brands`); für Custom Repository nicht nötig. |

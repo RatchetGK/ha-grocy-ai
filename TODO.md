@@ -35,12 +35,15 @@ Erledigtes abhaken, neue Erkenntnisse sofort unter „Erkenntnisse“ eintragen.
 - [x] Nutzer: Grocy-Passwort geändert, API-Key erzeugt
 - [x] Add-on-Netzwerk-Port 80/tcp → 9192 gesetzt (Voraussetzung für Direktzugriff, auch für Grocy Android)
 - [x] Integration mit `http://a0d7b954-grocy` eingerichtet und geladen
-- [ ] `GrocyClient`: `get_product_by_barcode`, `add_by_barcode`, `consume_by_barcode`, `add_product`/`consume_product` (per ID), `get_volatile`
-- [ ] Fehlerklassen (`GrocyConnectionError`, `GrocyAuthError`, `GrocyNotFoundError`, `GrocyApiError`)
-- [ ] `services.yaml` + Service-Handler `add_stock`, `consume_stock`, `scan` (mit Response)
-- [ ] Events `grocy_ai_stock_added`, `grocy_ai_stock_consumed`, `grocy_ai_barcode_unknown`, `grocy_ai_error`
-- [ ] Tests mit gemockter API (aioclient_mock)
-- [ ] Manuelle Abnahme in HA
+- [x] `GrocyClient`: `get_product`, `get_product_by_barcode`, `add_product`, `consume_product` (Buchung immer per ID nach Auflösung)
+- [ ] `get_volatile` → verschoben nach M4 (Coordinator)
+- [x] Fehlerklassen (`GrocyConnectionError`, `GrocyAuthError`, `GrocyNotFoundError`, `GrocyApiError`)
+- [x] `services.yaml` + Service-Handler `add_stock`, `consume_stock`, `scan` (mit Response)
+- [x] Events `grocy_ai_stock_added`, `grocy_ai_stock_consumed`, `grocy_ai_barcode_unknown`, `grocy_ai_error`
+- [x] Tests mit gemockter API (aioclient_mock) – 24 grün
+- [x] Übersetzte Fehlermeldungen (de/en), Standard-Haltbarkeit selbst berechnet
+- [ ] Release v0.2.0, HACS-Update (nach Freigabe), HA-Neustart (nach Freigabe)
+- [ ] Manuelle Abnahme in HA: Testprodukt mit Barcode anlegen, Plus/Minus über Entwicklerwerkzeuge → Aktionen
 
 ## M3 – MHD per Foto (v0.3.0)
 - [ ] `ai.py`: Prompt + Struktur + Parsing (TT.MM.JJ, MM/JJJJ → Monatsende, …)
@@ -86,3 +89,5 @@ Erledigtes abhaken, neue Erkenntnisse sofort unter „Erkenntnisse“ eintragen.
 - 2026-10-25: Grocy-Add-on: Standard `ssl: true` erwartet Zertifikate → auf false gesetzt. Port 80/tcp ist standardmäßig nicht nach außen gemappt; HA Core erreicht das Add-on intern über `http://a0d7b954-grocy` (Port 80). Ingress (Port 8099) nur für die Sidebar. Standard-Login admin/admin → sofort ändern. ha-mcp läuft auf dem PC und kann das interne Netz nicht direkt testen (Ingress-Proxy antwortet 302 → Add-on läuft).
 - 2026-10-25: Erster Config-Flow → „Verbindung fehlgeschlagen“. Ursache: Das Grocy-Add-on erzeugt die nginx-Konfiguration für den Direktzugriff (Port 80) nur, wenn `bashio::app.port 80` gesetzt ist (init-nginx). Ohne Netzwerk-Port gibt es nur Ingress. Fix: Port 9192 eintragen, Add-on neu starten. Danach: `/api/system/info` ohne Key → 401 (erreichbar).
 - 2026-10-25: Config-Entry `grocy_ai` mit `http://a0d7b954-grocy` eingerichtet, Status `loaded` → interne Verbindung HA Core → Grocy-Add-on bestätigt.
+- 2026-10-25: Grocy-API `POST …/add` setzt ohne `best_before_date` das **heutige** Datum (nicht die Standard-Haltbarkeit). grocy_ai berechnet das Datum aus `default_best_before_days` (-1/0 → 2999-12-31). Unbekannter Barcode/Produkt → HTTP 400 mit `error_message`.
+- 2026-10-25: `aioclient_mock.mock_calls` speichert die HTTP-Methode großgeschrieben (`POST`).

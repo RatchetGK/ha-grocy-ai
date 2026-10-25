@@ -10,11 +10,11 @@ AI and automation inside Home Assistant. Grocy stays the source of truth.
 | Feature | Status |
 |---|---|
 | Config flow (Grocy URL + API key) & options | ✅ v0.1.0 |
-| Book stock by barcode (plus / minus) | 🔜 v0.2.0 |
+| Book stock by barcode (plus / minus) | ✅ v0.2.0 |
 | Best-before date from a photo via HA **AI Task** (provider-agnostic) | 🔜 v0.3.0 |
 | Notifications for products expiring soon | 🔜 v0.4.0 |
 | Products below minimum stock → Bring! (any to-do entity), no duplicates | 🔜 v0.5.0 |
-| Stable services & events for a kitchen tablet / Zigbee buttons | 🔜 v0.2.0+ |
+| Stable services & events for a kitchen tablet / Zigbee buttons | ✅ v0.2.0 (extended later) |
 
 Planned services/events: see [PLAN.md §5](PLAN.md#5-schnittstelle-services--events).
 
@@ -51,6 +51,27 @@ Updates appear in HACS automatically when a new release is published.
 
 API keys are stored only in Home Assistant's config entry – never in this
 repository.
+
+## Services
+| Service | Purpose |
+|---|---|
+| `grocy_ai.add_stock` | Purchased: stock +amount (barcode **or** product_id, optional `best_before_date`, `price`, `location_id`) |
+| `grocy_ai.consume_stock` | Used up: stock −amount (optional `spoiled`) |
+| `grocy_ai.scan` | Barcode + `mode: plus/minus` – for buttons and tablets |
+
+All services return a response (product, amount, best-before date and its
+source, new stock amount) and fire events: `grocy_ai_stock_added`,
+`grocy_ai_stock_consumed`, `grocy_ai_barcode_unknown`, `grocy_ai_error`.
+Without `best_before_date` the product's default shelf life configured in
+Grocy is used (`-1` or `0` = never expires).
+
+Example (e.g. a Zigbee button action):
+```yaml
+action: grocy_ai.scan
+data:
+  barcode: "4006040001234"
+  mode: minus
+```
 
 ## Development
 Privacy: every commit/push is checked by `scripts/check_private_data.py`
