@@ -1,0 +1,47 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to Grocy",
+        "description": "Enter the URL of your Grocy instance and an API key (Grocy → Manage API keys).",
+        "data": {
+          "url": "URL",
+          "api_key": "API key",
+          "verify_ssl": "Verify SSL certificate"
+        },
+        "data_description": {
+          "url": "Base URL of Grocy as reachable from Home Assistant, e.g. http://homeassistant.local:9192",
+          "api_key": "API key created in Grocy",
+          "verify_ssl": "Verify the SSL certificate (only relevant for https)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect",
+      "invalid_auth": "Invalid authentication",
+      "unknown": "Unexpected error"
+    },
+    "abort": {
+      "already_configured": "Service is already configured"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Grocy AI options",
+        "data": {
+          "expiry_days": "Notify days before expiry",
+          "notify_service": "Notify service",
+          "todo_entity": "Shopping list (to-do entity)",
+          "ai_task_entity": "AI Task entity"
+        },
+        "data_description": {
+          "expiry_days": "Products whose best-before date is within this many days are reported.",
+          "notify_service": "Service used for expiry notifications, e.g. notify.mobile_app_phone.",
+          "todo_entity": "Products below minimum stock are added here (e.g. a Bring! list).",
+          "ai_task_entity": "Used to read best-before dates from photos. Leave empty to use the default AI Task entity."
+        }
+      }
+    }
+  }
+}

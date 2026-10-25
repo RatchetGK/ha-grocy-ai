@@ -1,0 +1,47 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Mit Grocy verbinden",
+        "description": "URL deiner Grocy-Instanz und einen API-Schlüssel eingeben (Grocy → API-Schlüssel verwalten).",
+        "data": {
+          "url": "URL",
+          "api_key": "API-Schlüssel",
+          "verify_ssl": "SSL-Zertifikat überprüfen"
+        },
+        "data_description": {
+          "url": "Basis-URL von Grocy, wie sie von Home Assistant aus erreichbar ist, z. B. http://homeassistant.local:9192",
+          "api_key": "In Grocy erzeugter API-Schlüssel",
+          "verify_ssl": "SSL-Zertifikat prüfen (nur bei https relevant)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Verbindung fehlgeschlagen",
+      "invalid_auth": "Ungültige Authentifizierung",
+      "unknown": "Unerwarteter Fehler"
+    },
+    "abort": {
+      "already_configured": "Dienst ist bereits konfiguriert"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Grocy-AI-Optionen",
+        "data": {
+          "expiry_days": "Tage vor Ablauf benachrichtigen",
+          "notify_service": "Benachrichtigungsdienst",
+          "todo_entity": "Einkaufsliste (To-do-Entität)",
+          "ai_task_entity": "AI-Task-Entität"
+        },
+        "data_description": {
+          "expiry_days": "Produkte, deren MHD innerhalb dieser Anzahl Tage liegt, werden gemeldet.",
+          "notify_service": "Dienst für Ablauf-Benachrichtigungen, z. B. notify.mobile_app_handy.",
+          "todo_entity": "Produkte unter Mindestbestand werden hier eingetragen (z. B. eine Bring!-Liste).",
+          "ai_task_entity": "Liest das MHD aus Fotos. Leer lassen für die Standard-AI-Task-Entität."
+        }
+      }
+    }
+  }
+}

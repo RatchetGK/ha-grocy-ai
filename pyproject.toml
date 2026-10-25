@@ -1,0 +1,23 @@
+[project]
+name = "ha-grocy-ai"
+version = "0.0.0"  # real version lives in custom_components/grocy_ai/manifest.json
+requires-python = ">=3.14"
+
+[tool.ruff]
+target-version = "py314"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "ASYNC", "RUF", "PL", "PT"]
+ignore = ["PLR0913", "PLR2004"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["custom_components"]
+force-sort-within-sections = true
+combine-as-imports = true
+known-third-party = ["homeassistant"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]

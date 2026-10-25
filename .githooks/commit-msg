@@ -1,0 +1,14 @@
+#!/bin/sh
+# Block private data in the commit message itself.
+python - "$1" <<'PY'
+import subprocess, sys
+from pathlib import Path
+sys.path.insert(0, "scripts")
+import check_private_data as c
+msg = Path(sys.argv[1]).read_text(encoding="utf-8", errors="replace")
+found = c.scan_text("<commit message>", msg, c.load_denylist())
+if found:
+    print("BLOCKED - commit message contains private data:")
+    print("\n".join("  " + f for f in found))
+    sys.exit(1)
+PY
