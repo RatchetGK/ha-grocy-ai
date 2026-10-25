@@ -28,13 +28,13 @@ Erledigtes abhaken, neue Erkenntnisse sofort unter „Erkenntnisse“ eintragen.
 - [x] PLAN/TODO/CHANGELOG aktualisieren
 
 - [x] Integration per HACS (Custom Repository) installiert, HA neu gestartet, lädt ohne Fehler
-- [ ] Manuelle Abnahme: Config-Flow erfolgreich abgeschlossen
+- [x] Manuelle Abnahme: Config-Flow erfolgreich abgeschlossen
 
 ## M2 – Grocy-Anbindung & Barcode-Buchung (v0.2.0)
 - [x] Grocy-Add-on installiert (`a0d7b954_grocy` v0.26.5; culture de, EUR, ssl aus, Watchdog an, Auto-Update aus) und gestartet
 - [x] Nutzer: Grocy-Passwort geändert, API-Key erzeugt
 - [x] Add-on-Netzwerk-Port 80/tcp → 9192 gesetzt (Voraussetzung für Direktzugriff, auch für Grocy Android)
-- [ ] Integration mit `http://a0d7b954-grocy` eingerichtet und geladen
+- [x] Integration mit `http://a0d7b954-grocy` eingerichtet und geladen
 - [ ] `GrocyClient`: `get_product_by_barcode`, `add_by_barcode`, `consume_by_barcode`, `add_product`/`consume_product` (per ID), `get_volatile`
 - [ ] Fehlerklassen (`GrocyConnectionError`, `GrocyAuthError`, `GrocyNotFoundError`, `GrocyApiError`)
 - [ ] `services.yaml` + Service-Handler `add_stock`, `consume_stock`, `scan` (mit Response)
@@ -85,3 +85,4 @@ Erledigtes abhaken, neue Erkenntnisse sofort unter „Erkenntnisse“ eintragen.
 - 2026-10-25: Im öffentlichen Repo laufen jetzt alle Checks inkl. echter `hacs/action` grün.
 - 2026-10-25: Grocy-Add-on: Standard `ssl: true` erwartet Zertifikate → auf false gesetzt. Port 80/tcp ist standardmäßig nicht nach außen gemappt; HA Core erreicht das Add-on intern über `http://a0d7b954-grocy` (Port 80). Ingress (Port 8099) nur für die Sidebar. Standard-Login admin/admin → sofort ändern. ha-mcp läuft auf dem PC und kann das interne Netz nicht direkt testen (Ingress-Proxy antwortet 302 → Add-on läuft).
 - 2026-10-25: Erster Config-Flow → „Verbindung fehlgeschlagen“. Ursache: Das Grocy-Add-on erzeugt die nginx-Konfiguration für den Direktzugriff (Port 80) nur, wenn `bashio::app.port 80` gesetzt ist (init-nginx). Ohne Netzwerk-Port gibt es nur Ingress. Fix: Port 9192 eintragen, Add-on neu starten. Danach: `/api/system/info` ohne Key → 401 (erreichbar).
+- 2026-10-25: Config-Entry `grocy_ai` mit `http://a0d7b954-grocy` eingerichtet, Status `loaded` → interne Verbindung HA Core → Grocy-Add-on bestätigt.
