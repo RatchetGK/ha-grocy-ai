@@ -5,6 +5,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
+### Changed
+- Config flow URL hint now names the Grocy add-on URL and that the add-on
+  needs a network port for direct access.
 
 ## [0.1.0] - 2026-10-25
 ### Added

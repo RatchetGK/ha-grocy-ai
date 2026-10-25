@@ -31,7 +31,7 @@ KI-Funktionen und Automatisierung erweitert. **Grocy bleibt die Datenbasis.**
 | Home Assistant | 2026.10.x, HA OS auf Raspberry Pi, Sprache `de` |
 | AI Task | eine AI-Task-Entität vorhanden – `generate_data` unterstützt Attachments + `structure` |
 | To-do-Listen | mehrere, darunter Bring!-Listen (konkrete Entitäten nur lokal in `.local/ENVIRONMENT.md`) |
-| Grocy | Community-Add-on `a0d7b954_grocy` (installiert 2026-10-25), intern `http://a0d7b954-grocy` (Port 80), kein LAN-Port |
+| Grocy | Community-Add-on `a0d7b954_grocy` (installiert 2026-10-25), intern `http://a0d7b954-grocy` (Port 80); Netzwerk-Port 9192 gesetzt (nötig für Direktzugriff) |
 | Grocy-HACS-Integration | im HACS-Store aktuell als `iamkarlson/grocy` gelistet; wird von `grocy_ai` **nicht** benötigt |
 | Test-Toolchain | `pytest-homeassistant-custom-component` 0.13.374 → HA 2026.10.3, **Python ≥ 3.14** |
 
@@ -222,7 +222,7 @@ Stabile Schnittstelle für Tablet-App und Taster. Änderungen = SemVer-Minor
 |---|---|
 | Private Daten/Secrets landen versehentlich im öffentlichen Repo. | D14; bei Leck: Schlüssel sofort widerrufen, nicht nur aus Historie löschen. |
 | Frischer Klon ohne `.local/private-terms.txt` / ohne `core.hooksPath`. | Skill `commit-push` Schritt 1 prüft beides. |
-| Erreichbarkeit des Grocy-Add-ons aus HA: interner Hostname `http://a0d7b954-grocy` (Port 80, laut Add-on-Konfiguration); endgültige Bestätigung beim ersten Config-Flow. Grocy Android braucht einen freigegebenen LAN-Port. | Hinweis in README; LAN-Port erst nach Passwortänderung freigeben. |
+| Grocy-Add-on aktiviert den Direktzugriff (Port 80) **nur**, wenn im Add-on ein Netzwerk-Port gesetzt ist; sonst nur Ingress → „Verbindung fehlgeschlagen“. | Port gesetzt (9192); Hinweis im Config-Flow-Text und README. |
 | KI liest MHD falsch (Formate „31.12.26“, „12/2026“, nur Monat/Jahr). | Prompt mit Formatregeln, Monats-Datum → letzter Tag des Monats, Plausibilitätsprüfung, `confidence` im Ergebnis, Fallback. |
 | Bring!-Artikelnamen weichen von Grocy-Namen ab (Duplikat mit anderem Wortlaut). | Normalisierter Vergleich + eigener Store; später optional Mapping-Feld/Grocy-Userfield. |
 | Unbekannte Barcodes (Produkt fehlt in Grocy). | Event für Tablet; Produktanlage evtl. später (Open Food Facts) – nicht in M2. |
