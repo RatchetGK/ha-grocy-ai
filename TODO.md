@@ -78,3 +78,5 @@ Erledigtes abhaken, neue Erkenntnisse sofort unter „Erkenntnisse“ eintragen.
 - 2026-10-25: Auth-Fehler beim Setup → vorerst `ConfigEntryError`; mit Reauth-Flow (M6) auf `ConfigEntryAuthFailed` umstellen.
 - 2026-10-25: „Kurz öffentlich, dann wieder privat“ verworfen (HACS braucht das Repo dauerhaft öffentlich). Entscheidung: öffentlich.
 - 2026-10-25: Alte Commits enthielten interne IP + Vornamen (nur solange privat). Historie auf GitHub nicht sicher bereinigbar (alte SHAs bleiben erreichbar, Actions-Logs) → neues Repo, ein sauberer Initial-Commit; altes Repo umbenannt + privat. Lokale Details jetzt in `.local/` (gitignored).
+- 2026-10-25: hassfest verbietet URLs mit Hostnamen in `strings.json`/Übersetzungen → Beispiel-URL per `description_placeholders` (`{url_example}`) einsetzen.
+- 2026-10-25: Im öffentlichen Repo laufen jetzt alle Checks inkl. echter `hacs/action` grün.
