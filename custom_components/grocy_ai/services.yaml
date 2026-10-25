@@ -1,0 +1,91 @@
+add_stock:
+  fields:
+    barcode:
+      example: "4006040001234"
+      selector:
+        text:
+    product_id:
+      selector:
+        number:
+          min: 1
+          mode: box
+    amount:
+      default: 1
+      selector:
+        number:
+          min: 0.01
+          step: 0.01
+          mode: box
+    best_before_date:
+      selector:
+        date:
+    price:
+      selector:
+        number:
+          min: 0
+          step: 0.01
+          mode: box
+    location_id:
+      selector:
+        number:
+          min: 1
+          mode: box
+    config_entry_id:
+      selector:
+        config_entry:
+          integration: grocy_ai
+
+consume_stock:
+  fields:
+    barcode:
+      example: "4006040001234"
+      selector:
+        text:
+    product_id:
+      selector:
+        number:
+          min: 1
+          mode: box
+    amount:
+      default: 1
+      selector:
+        number:
+          min: 0.01
+          step: 0.01
+          mode: box
+    spoiled:
+      default: false
+      selector:
+        boolean:
+    config_entry_id:
+      selector:
+        config_entry:
+          integration: grocy_ai
+
+scan:
+  fields:
+    barcode:
+      required: true
+      example: "4006040001234"
+      selector:
+        text:
+    mode:
+      required: true
+      default: plus
+      selector:
+        select:
+          translation_key: scan_mode
+          options:
+            - plus
+            - minus
+    amount:
+      default: 1
+      selector:
+        number:
+          min: 0.01
+          step: 0.01
+          mode: box
+    config_entry_id:
+      selector:
+        config_entry:
+          integration: grocy_ai

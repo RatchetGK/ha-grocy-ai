@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+from datetime import date
+import json
 from typing import Any
+from urllib.parse import quote
 
 import aiohttp
 
@@ -22,7 +25,16 @@ class GrocyAuthError(GrocyError):
 
 
 class GrocyApiError(GrocyError):
-    """Grocy returned an unexpected response."""
+    """Grocy returned an error or an unexpected response."""
+
+    def __init__(self, message: str, status: int | None = None) -> None:
+        """Store the HTTP status alongside Grocy's error message."""
+        super().__init__(message)
+        self.status = status
+
+
+class GrocyNotFoundError(GrocyApiError):
+    """The requested product or barcode does not exist in Grocy."""
 
 
 class GrocyClient:
@@ -62,8 +74,7 @@ class GrocyClient:
                 if resp.status in (401, 403):
                     raise GrocyAuthError("Invalid Grocy API key")
                 if resp.status >= 400:
-                    text = await resp.text()
-                    raise GrocyApiError(f"Grocy returned HTTP {resp.status}: {text}")
+                    raise GrocyApiError(await _error_message(resp), resp.status)
                 if resp.status == 204:
                     return None
                 return await resp.json(content_type=None)
@@ -76,6 +87,67 @@ class GrocyClient:
         if not isinstance(data, dict):
             raise GrocyApiError("Unexpected response from /api/system/info")
         return data
+
+    async def get_product(self, product_id: int) -> dict[str, Any]:
+        """Return product details (``ProductDetailsResponse``) for a product id."""
+        return await self._get_product_details(f"stock/products/{product_id}")
+
+    async def get_product_by_barcode(self, barcode: str) -> dict[str, Any]:
+        """Return product details for a barcode; raise GrocyNotFoundError if unknown."""
+        return await self._get_product_details(
+            f"stock/products/by-barcode/{quote(barcode, safe='')}"
+        )
+
+    async def add_product(
+        self,
+        product_id: int,
+        amount: float,
+        best_before_date: date,
+        price: float | None = None,
+        location_id: int | None = None,
+    ) -> list[dict[str, Any]]:
+        """Add stock (purchase). Returns the created stock log entries."""
+        body: dict[str, Any] = {
+            "amount": amount,
+            "best_before_date": best_before_date.isoformat(),
+            "transaction_type": "purchase",
+        }
+        if price is not None:
+            body["price"] = price
+        if location_id is not None:
+            body["location_id"] = location_id
+        return await self._request("POST", f"stock/products/{product_id}/add", json=body) or []
+
+    async def consume_product(
+        self, product_id: int, amount: float, spoiled: bool = False
+    ) -> list[dict[str, Any]]:
+        """Consume stock. Raises GrocyApiError e.g. when amount exceeds the stock."""
+        body = {"amount": amount, "spoiled": spoiled, "transaction_type": "consume"}
+        return await self._request("POST", f"stock/products/{product_id}/consume", json=body) or []
+
+    async def _get_product_details(self, path: str) -> dict[str, Any]:
+        """GET a ProductDetailsResponse; Grocy answers 400 for unknown ids/barcodes."""
+        try:
+            data = await self._request("GET", path)
+        except GrocyApiError as err:
+            if err.status in (400, 404):
+                raise GrocyNotFoundError(str(err), err.status) from err
+            raise
+        if not isinstance(data, dict) or "product" not in data:
+            raise GrocyApiError(f"Unexpected response from /api/{path}")
+        return data
+
+
+async def _error_message(resp: aiohttp.ClientResponse) -> str:
+    """Extract Grocy's ``error_message`` from an error response."""
+    text = await resp.text()
+    try:
+        data = json.loads(text)
+    except ValueError:
+        data = None
+    if isinstance(data, dict) and data.get("error_message"):
+        return str(data["error_message"])
+    return f"Grocy returned HTTP {resp.status}: {text[:200]}"
 
 
 def normalize_url(url: str) -> str:

@@ -43,5 +43,120 @@
         }
       }
     }
+  },
+  "services": {
+    "add_stock": {
+      "name": "Bestand hinzufügen",
+      "description": "Bucht einen Einkauf in Grocy (Bestand +Menge) per Barcode oder Produkt-ID.",
+      "fields": {
+        "barcode": {
+          "name": "Barcode",
+          "description": "Barcode des Produkts (EAN/GTIN oder Grocy-Barcode). Entweder Barcode oder Produkt-ID angeben."
+        },
+        "product_id": {
+          "name": "Produkt-ID",
+          "description": "Grocy-Produkt-ID. Entweder Barcode oder Produkt-ID angeben."
+        },
+        "amount": {
+          "name": "Menge",
+          "description": "Menge in der Bestandseinheit des Produkts."
+        },
+        "best_before_date": {
+          "name": "MHD",
+          "description": "Leer lassen für die Standard-Haltbarkeit des Produkts aus Grocy (bzw. „läuft nie ab“)."
+        },
+        "price": {
+          "name": "Preis",
+          "description": "Preis pro Bestandseinheit."
+        },
+        "location_id": {
+          "name": "Lagerort-ID",
+          "description": "Grocy-Lagerort-ID. Leer lassen für den Standard-Lagerort des Produkts."
+        },
+        "config_entry_id": {
+          "name": "Grocy-Instanz",
+          "description": "Nur nötig, wenn mehrere Grocy-AI-Einträge eingerichtet sind."
+        }
+      }
+    },
+    "consume_stock": {
+      "name": "Bestand verbrauchen",
+      "description": "Bucht einen Verbrauch in Grocy (Bestand −Menge) per Barcode oder Produkt-ID.",
+      "fields": {
+        "barcode": {
+          "name": "Barcode",
+          "description": "Barcode des Produkts (EAN/GTIN oder Grocy-Barcode). Entweder Barcode oder Produkt-ID angeben."
+        },
+        "product_id": {
+          "name": "Produkt-ID",
+          "description": "Grocy-Produkt-ID. Entweder Barcode oder Produkt-ID angeben."
+        },
+        "amount": {
+          "name": "Menge",
+          "description": "Menge in der Bestandseinheit des Produkts."
+        },
+        "spoiled": {
+          "name": "Verdorben",
+          "description": "Als verdorben (weggeworfen) statt verbraucht buchen."
+        },
+        "config_entry_id": {
+          "name": "Grocy-Instanz",
+          "description": "Nur nötig, wenn mehrere Grocy-AI-Einträge eingerichtet sind."
+        }
+      }
+    },
+    "scan": {
+      "name": "Scannen",
+      "description": "Komfort-Dienst für Taster und Tablets: Barcode + Modus plus/minus.",
+      "fields": {
+        "barcode": {
+          "name": "Barcode",
+          "description": "Barcode des Produkts (EAN/GTIN oder Grocy-Barcode). Entweder Barcode oder Produkt-ID angeben."
+        },
+        "mode": {
+          "name": "Modus",
+          "description": "plus = eingekauft (Bestand erhöhen), minus = verbraucht (Bestand verringern)."
+        },
+        "amount": {
+          "name": "Menge",
+          "description": "Menge in der Bestandseinheit des Produkts."
+        },
+        "config_entry_id": {
+          "name": "Grocy-Instanz",
+          "description": "Nur nötig, wenn mehrere Grocy-AI-Einträge eingerichtet sind."
+        }
+      }
+    }
+  },
+  "selector": {
+    "scan_mode": {
+      "options": {
+        "plus": "Plus (eingekauft)",
+        "minus": "Minus (verbraucht)"
+      }
+    }
+  },
+  "exceptions": {
+    "unknown_barcode": {
+      "message": "Barcode {barcode} ist in Grocy nicht bekannt."
+    },
+    "unknown_product": {
+      "message": "Produkt {product_id} existiert in Grocy nicht."
+    },
+    "not_loaded": {
+      "message": "Grocy AI ist nicht eingerichtet oder nicht geladen."
+    },
+    "multiple_entries": {
+      "message": "Mehrere Grocy-AI-Einträge eingerichtet – bitte einen auswählen (config_entry_id)."
+    },
+    "entry_not_found": {
+      "message": "Grocy-AI-Eintrag {entry_id} wurde nicht gefunden."
+    },
+    "cannot_connect": {
+      "message": "Grocy ist nicht erreichbar: {message}"
+    },
+    "grocy_error": {
+      "message": "Grocy meldet einen Fehler: {message}"
+    }
   }
 }

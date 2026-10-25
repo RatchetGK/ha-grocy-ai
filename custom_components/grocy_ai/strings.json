@@ -43,5 +43,120 @@
         }
       }
     }
+  },
+  "services": {
+    "add_stock": {
+      "name": "Add stock",
+      "description": "Books a purchase in Grocy (stock +amount) by barcode or product ID.",
+      "fields": {
+        "barcode": {
+          "name": "Barcode",
+          "description": "Barcode of the product (EAN/GTIN or a Grocy barcode). Use either barcode or product ID."
+        },
+        "product_id": {
+          "name": "Product ID",
+          "description": "Grocy product ID. Use either barcode or product ID."
+        },
+        "amount": {
+          "name": "Amount",
+          "description": "Amount in the product's stock quantity unit."
+        },
+        "best_before_date": {
+          "name": "Best-before date",
+          "description": "Leave empty to use the product's default shelf life from Grocy (or 'never expires')."
+        },
+        "price": {
+          "name": "Price",
+          "description": "Price per stock quantity unit."
+        },
+        "location_id": {
+          "name": "Location ID",
+          "description": "Grocy location ID. Leave empty for the product's default location."
+        },
+        "config_entry_id": {
+          "name": "Grocy instance",
+          "description": "Only needed when more than one Grocy AI entry is configured."
+        }
+      }
+    },
+    "consume_stock": {
+      "name": "Consume stock",
+      "description": "Books consumption in Grocy (stock -amount) by barcode or product ID.",
+      "fields": {
+        "barcode": {
+          "name": "Barcode",
+          "description": "Barcode of the product (EAN/GTIN or a Grocy barcode). Use either barcode or product ID."
+        },
+        "product_id": {
+          "name": "Product ID",
+          "description": "Grocy product ID. Use either barcode or product ID."
+        },
+        "amount": {
+          "name": "Amount",
+          "description": "Amount in the product's stock quantity unit."
+        },
+        "spoiled": {
+          "name": "Spoiled",
+          "description": "Book as spoiled (thrown away) instead of consumed."
+        },
+        "config_entry_id": {
+          "name": "Grocy instance",
+          "description": "Only needed when more than one Grocy AI entry is configured."
+        }
+      }
+    },
+    "scan": {
+      "name": "Scan",
+      "description": "Convenience service for buttons and tablets: barcode + mode plus/minus.",
+      "fields": {
+        "barcode": {
+          "name": "Barcode",
+          "description": "Barcode of the product (EAN/GTIN or a Grocy barcode). Use either barcode or product ID."
+        },
+        "mode": {
+          "name": "Mode",
+          "description": "plus = purchased (add stock), minus = used up (consume stock)."
+        },
+        "amount": {
+          "name": "Amount",
+          "description": "Amount in the product's stock quantity unit."
+        },
+        "config_entry_id": {
+          "name": "Grocy instance",
+          "description": "Only needed when more than one Grocy AI entry is configured."
+        }
+      }
+    }
+  },
+  "selector": {
+    "scan_mode": {
+      "options": {
+        "plus": "Plus (purchased)",
+        "minus": "Minus (used up)"
+      }
+    }
+  },
+  "exceptions": {
+    "unknown_barcode": {
+      "message": "Barcode {barcode} is not known in Grocy."
+    },
+    "unknown_product": {
+      "message": "Product {product_id} does not exist in Grocy."
+    },
+    "not_loaded": {
+      "message": "Grocy AI is not set up or not loaded."
+    },
+    "multiple_entries": {
+      "message": "More than one Grocy AI entry is configured – please choose one (config_entry_id)."
+    },
+    "entry_not_found": {
+      "message": "Grocy AI entry {entry_id} was not found."
+    },
+    "cannot_connect": {
+      "message": "Cannot reach Grocy: {message}"
+    },
+    "grocy_error": {
+      "message": "Grocy reported an error: {message}"
+    }
   }
 }
