@@ -10,7 +10,7 @@
           "verify_ssl": "SSL-Zertifikat überprüfen"
         },
         "data_description": {
-          "url": "Basis-URL von Grocy, wie sie von Home Assistant aus erreichbar ist, z. B. http://homeassistant.local:9192",
+          "url": "Basis-URL von Grocy, wie sie von Home Assistant aus erreichbar ist, z. B. {url_example}",
           "api_key": "In Grocy erzeugter API-Schlüssel",
           "verify_ssl": "SSL-Zertifikat prüfen (nur bei https relevant)"
         }

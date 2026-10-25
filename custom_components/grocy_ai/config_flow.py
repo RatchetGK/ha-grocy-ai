@@ -82,6 +82,7 @@ class GrocyAiConfigFlow(ConfigFlow, domain=DOMAIN):
             step_id="user",
             data_schema=self.add_suggested_values_to_schema(STEP_USER_DATA_SCHEMA, user_input),
             errors=errors,
+            description_placeholders={"url_example": "http://homeassistant.local:9192"},
         )
 
     @staticmethod
