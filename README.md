@@ -34,7 +34,7 @@ Planned services/events: see [PLAN.md §5](PLAN.md#5-schnittstelle-services--eve
 4. Restart Home Assistant
 5. *Settings → Devices & services → Add integration → Grocy AI*
 6. Enter Grocy URL and API key. For the community add-on the URL from inside
-   Home Assistant is typically `http://a0d7b954-grocy` (to be verified) or the
+   Home Assistant is `http://a0d7b954-grocy` (internal port 80) or the
    add-on's exposed port, e.g. `http://homeassistant.local:9192`.
 
 Updates appear in HACS automatically when a new release is published.

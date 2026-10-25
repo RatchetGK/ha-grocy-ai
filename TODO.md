@@ -30,8 +30,10 @@ Erledigtes abhaken, neue Erkenntnisse sofort unter „Erkenntnisse“ eintragen.
 - [ ] Manuelle Abnahme: Integration per HACS installieren und Config-Flow öffnen
 
 ## M2 – Grocy-Anbindung & Barcode-Buchung (v0.2.0)
-- [ ] Grocy-Add-on installieren (Nutzer) + API-Key erzeugen
-- [ ] Interne Add-on-URL verifizieren und in README eintragen
+- [x] Grocy-Add-on installiert (`a0d7b954_grocy` v0.26.5; culture de, EUR, ssl aus, Watchdog an, Auto-Update aus) und gestartet
+- [ ] Nutzer: Grocy öffnen, Standard-Login admin/admin ändern, API-Key erzeugen
+- [ ] Interne URL `http://a0d7b954-grocy` beim Einrichten der Integration bestätigen
+- [ ] Für Grocy Android später: Port 80/tcp freigeben (z. B. 9192) – erst nach Passwortänderung
 - [ ] `GrocyClient`: `get_product_by_barcode`, `add_by_barcode`, `consume_by_barcode`, `add_product`/`consume_product` (per ID), `get_volatile`
 - [ ] Fehlerklassen (`GrocyConnectionError`, `GrocyAuthError`, `GrocyNotFoundError`, `GrocyApiError`)
 - [ ] `services.yaml` + Service-Handler `add_stock`, `consume_stock`, `scan` (mit Response)
@@ -80,3 +82,4 @@ Erledigtes abhaken, neue Erkenntnisse sofort unter „Erkenntnisse“ eintragen.
 - 2026-10-25: Alte Commits enthielten interne IP + Vornamen (nur solange privat). Historie auf GitHub nicht sicher bereinigbar (alte SHAs bleiben erreichbar, Actions-Logs) → neues Repo, ein sauberer Initial-Commit; altes Repo umbenannt + privat. Lokale Details jetzt in `.local/` (gitignored).
 - 2026-10-25: hassfest verbietet URLs mit Hostnamen in `strings.json`/Übersetzungen → Beispiel-URL per `description_placeholders` (`{url_example}`) einsetzen.
 - 2026-10-25: Im öffentlichen Repo laufen jetzt alle Checks inkl. echter `hacs/action` grün.
+- 2026-10-25: Grocy-Add-on: Standard `ssl: true` erwartet Zertifikate → auf false gesetzt. Port 80/tcp ist standardmäßig nicht nach außen gemappt; HA Core erreicht das Add-on intern über `http://a0d7b954-grocy` (Port 80). Ingress (Port 8099) nur für die Sidebar. Standard-Login admin/admin → sofort ändern. ha-mcp läuft auf dem PC und kann das interne Netz nicht direkt testen (Ingress-Proxy antwortet 302 → Add-on läuft).
