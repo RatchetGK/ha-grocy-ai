@@ -6,6 +6,17 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-28
+### Added
+- Unknown barcodes are created automatically on a purchase (`add_stock`,
+  `scan` plus) via Grocy's external barcode lookup (Open Food Facts plugin);
+  option "Look up unknown barcodes online" (default on). Consuming never
+  creates products.
+- Event `grocy_ai_product_created`; response field `product_created`.
+
+### Fixed
+- Empty Grocy responses are treated as `null` instead of raising a JSON error.
+
 ## [0.2.0] - 2026-10-25
 ### Added
 - Services `grocy_ai.add_stock`, `grocy_ai.consume_stock` and `grocy_ai.scan`

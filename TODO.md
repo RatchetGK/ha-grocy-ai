@@ -44,24 +44,33 @@ Erledigtes abhaken, neue Erkenntnisse sofort unter „Erkenntnisse“ eintragen.
 - [x] Übersetzte Fehlermeldungen (de/en), Standard-Haltbarkeit selbst berechnet
 - [x] Release v0.2.0, HACS-Update + HA-Neustart (mit Freigabe), Integration geladen, 3 Dienste registriert
 - [x] Live-Smoke-Test: `scan` mit unbekanntem Barcode → „Barcode … is not known in Grocy“ (Verbindung + Fehlerpfad ok)
-- [ ] Vorschlag (Entscheidung Nutzer): Unbekannte Barcodes bei Plus automatisch über Grocys externen Lookup (Open Food Facts, `GET /stock/barcodes/external-lookup/{barcode}?add=true`) anlegen, abschaltbar im Options-Flow
 - [ ] Manuelle Abnahme in HA: Testprodukt mit Barcode anlegen, Plus/Minus über Entwicklerwerkzeuge → Aktionen
 
-## M3 – MHD per Foto (v0.3.0)
+## M2b – Barcode-Lookup Open Food Facts (v0.3.0)
+- [x] Nutzer-Freigabe (kostenlos, unkritisch)
+- [x] `GrocyClient.external_lookup` (`?add=true`), leere Antworten robust als `null`
+- [x] Option `external_barcode_lookup` (Std. an) im Options-Flow, de/en
+- [x] Nur bei Plus; Minus legt nie an; Plugin-Fehler/nichts gefunden → „Barcode unbekannt“
+- [x] Event `grocy_ai_product_created`, Antwortfeld `product_created`
+- [x] Tests (29 grün)
+- [ ] Release v0.3.0, HACS-Update + Neustart (nach Freigabe)
+- [ ] Live-Abnahme mit echtem, unbekanntem Barcode
+
+## M3 – MHD per Foto (v0.4.0)
 - [ ] `ai.py`: Prompt + Struktur + Parsing (TT.MM.JJ, MM/JJJJ → Monatsende, …)
 - [ ] Plausibilitätsprüfung + Fallback + Event `grocy_ai_best_before_failed`
 - [ ] Service `read_best_before`; `image` in `add_stock`/`scan`
 - [ ] Tests (gemocktes `ai_task.generate_data`)
 - [ ] Abnahme mit echten Fotos (Kamera / Upload)
 
-## M4 – Ablauf-Benachrichtigungen & Sensoren (v0.4.0)
+## M4 – Ablauf-Benachrichtigungen & Sensoren (v0.5.0)
 - [ ] `coordinator.py` (Polling `/stock/volatile`)
 - [ ] Sensoren expiring/expired/missing
 - [ ] Tägliche Benachrichtigung zur Uhrzeit X (Options-Flow), max. 1×/Tag
 - [ ] Service `check_expiring`, Event `grocy_ai_product_expiring`
 - [ ] Tests
 
-## M5 – Bring!-Sync (v0.5.0)
+## M5 – Bring!-Sync (v0.6.0)
 - [ ] `shopping.py`: Abgleich `todo.get_items` (needs_action), normalisierter Vergleich
 - [ ] Store für selbst hinzugefügte Produkte (kein Re-Add bis Bestand wieder ok)
 - [ ] Service `sync_shopping_list`, Event `grocy_ai_shopping_item_added`
@@ -95,3 +104,4 @@ Erledigtes abhaken, neue Erkenntnisse sofort unter „Erkenntnisse“ eintragen.
 - 2026-10-25: `aioclient_mock.mock_calls` speichert die HTTP-Methode großgeschrieben (`POST`).
 - 2026-10-25: Fehlermeldungen kommen über ha-mcp/API auf Englisch (Sprache des API-Aufrufers); in der deutschen HA-UI erscheinen die de-Übersetzungen.
 - 2026-10-25: grocy_ai fragt beim Scannen bisher nur Grocys eigene Produktdatenbank ab. Grocy hat aber einen eingebauten externen Barcode-Lookup (Plugin `OpenFoodFactsBarcodeLookupPlugin`, Standard aktiv), per API `GET /api/stock/barcodes/external-lookup/{barcode}?add=true` → legt Produkt an und liefert die neue ID (200 mit `null`, wenn nichts gefunden).
+- 2026-10-28: Nutzer hat Open-Food-Facts-Lookup freigegeben → v0.3.0; folgende Meilensteine je +1 Minor (M3 v0.4.0, M4 v0.5.0, M5 v0.6.0). Grocys OFF-Plugin sendet nur die Barcode-Ziffern an world.openfoodfacts.org; Lagerort/Einheit aus `product_presets_*`, sonst erster Eintrag.

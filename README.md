@@ -11,9 +11,10 @@ AI and automation inside Home Assistant. Grocy stays the source of truth.
 |---|---|
 | Config flow (Grocy URL + API key) & options | ✅ v0.1.0 |
 | Book stock by barcode (plus / minus) | ✅ v0.2.0 |
-| Best-before date from a photo via HA **AI Task** (provider-agnostic) | 🔜 v0.3.0 |
-| Notifications for products expiring soon | 🔜 v0.4.0 |
-| Products below minimum stock → Bring! (any to-do entity), no duplicates | 🔜 v0.5.0 |
+| Unknown barcodes are created automatically via Open Food Facts (through Grocy) | ✅ v0.3.0 |
+| Best-before date from a photo via HA **AI Task** (provider-agnostic) | 🔜 v0.4.0 |
+| Notifications for products expiring soon | 🔜 v0.5.0 |
+| Products below minimum stock → Bring! (any to-do entity), no duplicates | 🔜 v0.6.0 |
 | Stable services & events for a kitchen tablet / Zigbee buttons | ✅ v0.2.0 (extended later) |
 
 Planned services/events: see [PLAN.md §5](PLAN.md#5-schnittstelle-services--events).
@@ -24,7 +25,7 @@ Planned services/events: see [PLAN.md §5](PLAN.md#5-schnittstelle-services--eve
 - A running Grocy instance reachable from Home Assistant (e.g. the
   *Grocy* community add-on) and a Grocy API key
   (Grocy → *Settings / Manage API keys*)
-- For photo recognition (v0.3.0+): an **AI Task** entity
+- For photo recognition (v0.4.0+): an **AI Task** entity
   (e.g. Google Generative AI, OpenAI, Ollama …)
 
 ## Installation (HACS custom repository)
@@ -48,6 +49,10 @@ Updates appear in HACS automatically when a new release is published.
 - Notify service (e.g. `notify.mobile_app_…`)
 - To-do entity for the shopping list (e.g. a Bring! list)
 - AI Task entity (empty = Home Assistant default)
+- Look up unknown barcodes online (default on): on a purchase with an
+  unknown barcode Grocy queries [Open Food Facts](https://world.openfoodfacts.org)
+  (free, only the barcode is sent) and creates the product. Set default
+  location/quantity unit for new products in Grocy (*Settings → Stock*).
 
 API keys are stored only in Home Assistant's config entry – never in this
 repository.
@@ -60,8 +65,9 @@ repository.
 | `grocy_ai.scan` | Barcode + `mode: plus/minus` – for buttons and tablets |
 
 All services return a response (product, amount, best-before date and its
-source, new stock amount) and fire events: `grocy_ai_stock_added`,
-`grocy_ai_stock_consumed`, `grocy_ai_barcode_unknown`, `grocy_ai_error`.
+source, new stock amount, whether the product was just created) and fire
+events: `grocy_ai_stock_added`, `grocy_ai_stock_consumed`,
+`grocy_ai_product_created`, `grocy_ai_barcode_unknown`, `grocy_ai_error`.
 Without `best_before_date` the product's default shelf life configured in
 Grocy is used (`-1` or `0` = never expires).
 
