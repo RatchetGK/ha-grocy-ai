@@ -75,11 +75,15 @@ class GrocyClient:
                     raise GrocyAuthError("Invalid Grocy API key")
                 if resp.status >= 400:
                     raise GrocyApiError(await _error_message(resp), resp.status)
-                if resp.status == 204:
-                    return None
-                return await resp.json(content_type=None)
+                text = await resp.text()
         except (aiohttp.ClientError, TimeoutError) as err:
             raise GrocyConnectionError(f"Cannot connect to Grocy: {err}") from err
+        if not text.strip():
+            return None
+        try:
+            return json.loads(text)
+        except ValueError as err:
+            raise GrocyApiError(f"Invalid JSON from /api/{path}") from err
 
     async def get_system_info(self) -> dict[str, Any]:
         """Return Grocy system info (used as connection test)."""
