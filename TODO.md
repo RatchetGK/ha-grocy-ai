@@ -53,8 +53,8 @@ Erledigtes abhaken, neue Erkenntnisse sofort unter „Erkenntnisse“ eintragen.
 - [x] Nur bei Plus; Minus legt nie an; Plugin-Fehler/nichts gefunden → „Barcode unbekannt“
 - [x] Event `grocy_ai_product_created`, Antwortfeld `product_created`
 - [x] Tests (29 grün)
-- [ ] Release v0.3.0, HACS-Update + Neustart (nach Freigabe)
-- [ ] Live-Abnahme mit echtem, unbekanntem Barcode
+- [x] Release v0.3.0, HACS-Update + Neustart (mit Freigabe), Integration geladen, keine Log-Fehler
+- [ ] Live-Abnahme mit echtem, unbekanntem Barcode (Nutzer; bewusst kein Test mit Fantasie-Barcode, weil OFF Datenmüll enthält und ein Schrottprodukt anlegen könnte)
 
 ## M3 – MHD per Foto (v0.4.0)
 - [ ] `ai.py`: Prompt + Struktur + Parsing (TT.MM.JJ, MM/JJJJ → Monatsende, …)
