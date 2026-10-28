@@ -13,6 +13,7 @@ from pytest_homeassistant_custom_component.test_util.aiohttp import AiohttpClien
 from custom_components.grocy_ai.const import (
     CONF_AI_TASK_ENTITY,
     CONF_EXPIRY_DAYS,
+    CONF_EXTERNAL_LOOKUP,
     CONF_NOTIFY_SERVICE,
     CONF_TODO_ENTITY,
     DOMAIN,
@@ -90,6 +91,7 @@ async def test_options_flow(hass: HomeAssistant, aioclient_mock: AiohttpClientMo
         CONF_NOTIFY_SERVICE: "notify.mobile_app_phone",
         CONF_TODO_ENTITY: "todo.shopping_list",
         CONF_AI_TASK_ENTITY: "ai_task.example",
+        CONF_EXTERNAL_LOOKUP: False,
     }
     result = await hass.config_entries.options.async_configure(result["flow_id"], options)
     await hass.async_block_till_done()

@@ -21,9 +21,11 @@ from .api import GrocyAuthError, GrocyClient, GrocyConnectionError, GrocyError, 
 from .const import (
     CONF_AI_TASK_ENTITY,
     CONF_EXPIRY_DAYS,
+    CONF_EXTERNAL_LOOKUP,
     CONF_NOTIFY_SERVICE,
     CONF_TODO_ENTITY,
     DEFAULT_EXPIRY_DAYS,
+    DEFAULT_EXTERNAL_LOOKUP,
     DEFAULT_VERIFY_SSL,
     DOMAIN,
 )
@@ -93,7 +95,7 @@ class GrocyAiConfigFlow(ConfigFlow, domain=DOMAIN):
 
 
 class GrocyAiOptionsFlow(OptionsFlow):
-    """Options: expiry lead time, notify service, to-do list, AI Task entity."""
+    """Options: expiry lead time, notify, to-do list, AI Task entity, barcode lookup."""
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Manage the options."""
@@ -127,6 +129,9 @@ class GrocyAiOptionsFlow(OptionsFlow):
                 vol.Optional(CONF_AI_TASK_ENTITY): selector.EntitySelector(
                     selector.EntitySelectorConfig(domain="ai_task")
                 ),
+                vol.Required(
+                    CONF_EXTERNAL_LOOKUP, default=DEFAULT_EXTERNAL_LOOKUP
+                ): selector.BooleanSelector(),
             }
         )
         return self.async_show_form(

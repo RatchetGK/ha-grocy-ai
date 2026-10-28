@@ -3,16 +3,23 @@
 from __future__ import annotations
 
 from datetime import date, timedelta
+import logging
 from typing import Any
 
-from homeassistant.config_entries import ConfigEntryState
+from homeassistant.config_entries import ConfigEntry, ConfigEntryState
 from homeassistant.core import HomeAssistant, ServiceCall, ServiceResponse, SupportsResponse
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.util import dt as dt_util
 import voluptuous as vol
 
-from .api import GrocyClient, GrocyConnectionError, GrocyError, GrocyNotFoundError
+from .api import (
+    GrocyApiError,
+    GrocyClient,
+    GrocyConnectionError,
+    GrocyError,
+    GrocyNotFoundError,
+)
 from .const import (
     ATTR_AMOUNT,
     ATTR_BARCODE,
@@ -23,6 +30,7 @@ from .const import (
     ATTR_MESSAGE,
     ATTR_MODE,
     ATTR_PRICE,
+    ATTR_PRODUCT_CREATED,
     ATTR_PRODUCT_ID,
     ATTR_PRODUCT_NAME,
     ATTR_SERVICE,
@@ -32,9 +40,12 @@ from .const import (
     BBD_SOURCE_MANUAL,
     BBD_SOURCE_NEVER,
     BBD_SOURCE_UNSET,
+    CONF_EXTERNAL_LOOKUP,
+    DEFAULT_EXTERNAL_LOOKUP,
     DOMAIN,
     EVENT_BARCODE_UNKNOWN,
     EVENT_ERROR,
+    EVENT_PRODUCT_CREATED,
     EVENT_STOCK_ADDED,
     EVENT_STOCK_CONSUMED,
     MODE_MINUS,
@@ -44,6 +55,8 @@ from .const import (
     SERVICE_CONSUME_STOCK,
     SERVICE_SCAN,
 )
+
+_LOGGER = logging.getLogger(__name__)
 
 _AMOUNT = vol.All(vol.Coerce(float), vol.Range(min=0, min_included=False))
 _PRODUCT_KEYS = "product"
@@ -88,17 +101,18 @@ def async_setup_services(hass: HomeAssistant) -> None:
     """Register the integration's services (called once from async_setup)."""
 
     async def add_stock(call: ServiceCall) -> ServiceResponse:
-        return await _run(hass, call, _async_add_stock(hass, _client(hass, call), call.data))
+        return await _run(hass, call, _async_add_stock(hass, _entry(hass, call), call.data))
 
     async def consume_stock(call: ServiceCall) -> ServiceResponse:
-        return await _run(hass, call, _async_consume_stock(hass, _client(hass, call), call.data))
+        client = _entry(hass, call).runtime_data
+        return await _run(hass, call, _async_consume_stock(hass, client, call.data))
 
     async def scan(call: ServiceCall) -> ServiceResponse:
-        client = _client(hass, call)
+        entry = _entry(hass, call)
         if call.data[ATTR_MODE] == MODE_PLUS:
-            return await _run(hass, call, _async_add_stock(hass, client, call.data))
+            return await _run(hass, call, _async_add_stock(hass, entry, call.data))
         data = {**call.data, ATTR_SPOILED: False}
-        return await _run(hass, call, _async_consume_stock(hass, client, data))
+        return await _run(hass, call, _async_consume_stock(hass, entry.runtime_data, data))
 
     for name, handler, schema in (
         (SERVICE_ADD_STOCK, add_stock, ADD_STOCK_SCHEMA),
@@ -110,8 +124,8 @@ def async_setup_services(hass: HomeAssistant) -> None:
         )
 
 
-def _client(hass: HomeAssistant, call: ServiceCall) -> GrocyClient:
-    """Return the client of the addressed (or only) loaded config entry."""
+def _entry(hass: HomeAssistant, call: ServiceCall) -> ConfigEntry[GrocyClient]:
+    """Return the addressed (or only) loaded config entry."""
     if entry_id := call.data.get(ATTR_CONFIG_ENTRY_ID):
         entry = hass.config_entries.async_get_entry(entry_id)
         if entry is None or entry.domain != DOMAIN:
@@ -122,14 +136,14 @@ def _client(hass: HomeAssistant, call: ServiceCall) -> GrocyClient:
             )
         if entry.state is not ConfigEntryState.LOADED:
             raise ServiceValidationError(translation_domain=DOMAIN, translation_key="not_loaded")
-        return entry.runtime_data
+        return entry
 
     entries = hass.config_entries.async_loaded_entries(DOMAIN)
     if not entries:
         raise ServiceValidationError(translation_domain=DOMAIN, translation_key="not_loaded")
     if len(entries) > 1:
         raise ServiceValidationError(translation_domain=DOMAIN, translation_key="multiple_entries")
-    return entries[0].runtime_data
+    return entries[0]
 
 
 async def _run(hass: HomeAssistant, call: ServiceCall, coro: Any) -> ServiceResponse:
@@ -149,15 +163,25 @@ async def _run(hass: HomeAssistant, call: ServiceCall, coro: Any) -> ServiceResp
 
 
 async def _async_resolve(
-    hass: HomeAssistant, client: GrocyClient, data: dict[str, Any], mode: str
-) -> dict[str, Any]:
-    """Return Grocy product details for the barcode or product id in ``data``."""
+    hass: HomeAssistant,
+    client: GrocyClient,
+    data: dict[str, Any],
+    mode: str,
+    lookup: bool = False,
+) -> tuple[dict[str, Any], bool]:
+    """Return (product details, created) for the barcode or product id in ``data``.
+
+    With ``lookup`` an unknown barcode is looked up externally (Open Food Facts
+    via Grocy) and created in Grocy.
+    """
     barcode = data.get(ATTR_BARCODE)
     try:
         if barcode:
-            return await client.get_product_by_barcode(barcode)
-        return await client.get_product(data[ATTR_PRODUCT_ID])
+            return await client.get_product_by_barcode(barcode), False
+        return await client.get_product(data[ATTR_PRODUCT_ID]), False
     except GrocyNotFoundError as err:
+        if barcode and lookup and (created := await _async_lookup(hass, client, barcode)):
+            return created, True
         if barcode:
             hass.bus.async_fire(EVENT_BARCODE_UNKNOWN, {ATTR_BARCODE: barcode, ATTR_MODE: mode})
             raise ServiceValidationError(
@@ -170,6 +194,29 @@ async def _async_resolve(
             translation_key="unknown_product",
             translation_placeholders={"product_id": str(data[ATTR_PRODUCT_ID])},
         ) from err
+
+
+async def _async_lookup(
+    hass: HomeAssistant, client: GrocyClient, barcode: str
+) -> dict[str, Any] | None:
+    """Create an unknown product via Grocy's external barcode lookup."""
+    try:
+        found = await client.external_lookup(barcode)
+    except GrocyApiError as err:
+        _LOGGER.warning("External barcode lookup for %s failed: %s", barcode, err)
+        return None
+    if found is None:
+        return None
+    details = await client.get_product(int(found["id"]))
+    hass.bus.async_fire(
+        EVENT_PRODUCT_CREATED,
+        {
+            ATTR_PRODUCT_ID: int(found["id"]),
+            ATTR_PRODUCT_NAME: details["product"].get("name"),
+            ATTR_BARCODE: barcode,
+        },
+    )
+    return details
 
 
 def default_best_before(product: dict[str, Any], today: date) -> tuple[date, str]:
@@ -185,9 +232,11 @@ def default_best_before(product: dict[str, Any], today: date) -> tuple[date, str
 
 
 async def _async_add_stock(
-    hass: HomeAssistant, client: GrocyClient, data: dict[str, Any]
+    hass: HomeAssistant, entry: ConfigEntry[GrocyClient], data: dict[str, Any]
 ) -> dict[str, Any]:
-    details = await _async_resolve(hass, client, data, MODE_PLUS)
+    client = entry.runtime_data
+    lookup = entry.options.get(CONF_EXTERNAL_LOOKUP, DEFAULT_EXTERNAL_LOOKUP)
+    details, created = await _async_resolve(hass, client, data, MODE_PLUS, lookup)
     product = details["product"]
     product_id = int(product["id"])
 
@@ -213,6 +262,7 @@ async def _async_add_stock(
         ATTR_BEST_BEFORE_DATE: best_before.isoformat(),
         ATTR_BEST_BEFORE_SOURCE: source,
         ATTR_STOCK_AMOUNT: _stock_amount(after),
+        ATTR_PRODUCT_CREATED: created,
     }
     hass.bus.async_fire(EVENT_STOCK_ADDED, result)
     return result
@@ -221,7 +271,7 @@ async def _async_add_stock(
 async def _async_consume_stock(
     hass: HomeAssistant, client: GrocyClient, data: dict[str, Any]
 ) -> dict[str, Any]:
-    details = await _async_resolve(hass, client, data, MODE_MINUS)
+    details, _ = await _async_resolve(hass, client, data, MODE_MINUS)
     product = details["product"]
     product_id = int(product["id"])
 

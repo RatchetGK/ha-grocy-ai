@@ -17,6 +17,7 @@ from custom_components.grocy_ai.const import (
     DOMAIN,
     EVENT_BARCODE_UNKNOWN,
     EVENT_ERROR,
+    EVENT_PRODUCT_CREATED,
     EVENT_STOCK_ADDED,
     EVENT_STOCK_CONSUMED,
 )
@@ -81,6 +82,7 @@ async def test_add_stock_by_barcode_uses_default_shelf_life(
         "best_before_date": "2026-10-30",
         "best_before_source": "default",
         "stock_amount": 3.0,
+        "product_created": False,
     }
     assert _posted(aioclient_mock, "/stock/products/7/add") == {
         "amount": 1.0,
@@ -202,12 +204,12 @@ async def test_unknown_barcode(hass: HomeAssistant, aioclient_mock: AiohttpClien
 
     with pytest.raises(ServiceValidationError) as err:
         await hass.services.async_call(
-            DOMAIN, "scan", {"barcode": BARCODE, "mode": "plus"}, blocking=True
+            DOMAIN, "scan", {"barcode": BARCODE, "mode": "minus"}, blocking=True
         )
 
     assert err.value.translation_key == "unknown_barcode"
     await hass.async_block_till_done()
-    assert events[0].data == {"barcode": BARCODE, "mode": "plus"}
+    assert events[0].data == {"barcode": BARCODE, "mode": "minus"}
 
 
 @pytest.mark.usefixtures("setup_entry")
@@ -253,3 +255,98 @@ async def test_service_without_entry(hass: HomeAssistant) -> None:
     with pytest.raises(ServiceValidationError) as err:
         await hass.services.async_call(DOMAIN, "add_stock", {"product_id": 1}, blocking=True)
     assert err.value.translation_key == "not_loaded"
+
+
+LOOKUP_URL = f"{API}/stock/barcodes/external-lookup/{BARCODE}"
+
+
+def _unknown_barcode(aioclient_mock: AiohttpClientMocker) -> None:
+    aioclient_mock.get(
+        f"{API}/stock/products/by-barcode/{BARCODE}",
+        status=400,
+        json={"error_message": f"No product with barcode {BARCODE} found"},
+    )
+
+
+@pytest.mark.usefixtures("setup_entry")
+async def test_unknown_barcode_created_via_lookup(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
+) -> None:
+    """An unknown barcode is created via Grocy's external lookup and then booked."""
+    _unknown_barcode(aioclient_mock)
+    aioclient_mock.get(LOOKUP_URL, json={"name": "Milch", "barcode": BARCODE, "id": 42})
+    aioclient_mock.get(f"{API}/stock/products/42", json=details(product_id=42, stock=1))
+    aioclient_mock.post(f"{API}/stock/products/42/add", json=[])
+    created = async_capture_events(hass, EVENT_PRODUCT_CREATED)
+
+    result = await hass.services.async_call(
+        DOMAIN, "scan", {"barcode": BARCODE, "mode": "plus"}, blocking=True, return_response=True
+    )
+
+    assert result["product_id"] == 42
+    assert result["product_created"] is True
+    lookup_call = next(c for c in aioclient_mock.mock_calls if "external-lookup" in str(c[1]))
+    assert lookup_call[1].query["add"] == "true"
+    await hass.async_block_till_done()
+    assert created[0].data == {"product_id": 42, "product_name": "Milch", "barcode": BARCODE}
+
+
+@pytest.mark.parametrize(
+    "lookup_kwargs",
+    [
+        {"json": None},
+        {"status": 400, "json": {"error_message": "Plugin error"}},
+    ],
+)
+@pytest.mark.usefixtures("setup_entry")
+async def test_lookup_without_result_reports_unknown(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, lookup_kwargs: dict
+) -> None:
+    """Nothing found (or a plugin error) falls back to 'unknown barcode'."""
+    _unknown_barcode(aioclient_mock)
+    aioclient_mock.get(LOOKUP_URL, **lookup_kwargs)
+    unknown = async_capture_events(hass, EVENT_BARCODE_UNKNOWN)
+
+    with pytest.raises(ServiceValidationError) as err:
+        await hass.services.async_call(DOMAIN, "add_stock", {"barcode": BARCODE}, blocking=True)
+
+    assert err.value.translation_key == "unknown_barcode"
+    await hass.async_block_till_done()
+    assert len(unknown) == 1
+
+
+async def test_lookup_disabled(hass: HomeAssistant, aioclient_mock: AiohttpClientMocker) -> None:
+    """With the option switched off no external lookup happens."""
+    aioclient_mock.get(f"{API}/system/info", json=SYSTEM_INFO)
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data=MOCK_CONFIG,
+        unique_id=GROCY_URL,
+        options={"external_barcode_lookup": False},
+    )
+    entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    _unknown_barcode(aioclient_mock)
+
+    with pytest.raises(ServiceValidationError):
+        await hass.services.async_call(
+            DOMAIN, "scan", {"barcode": BARCODE, "mode": "plus"}, blocking=True
+        )
+
+    assert not any("external-lookup" in str(c[1]) for c in aioclient_mock.mock_calls)
+
+
+@pytest.mark.usefixtures("setup_entry")
+async def test_minus_never_looks_up(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
+) -> None:
+    """Consuming an unknown barcode must not create products."""
+    _unknown_barcode(aioclient_mock)
+
+    with pytest.raises(ServiceValidationError):
+        await hass.services.async_call(
+            DOMAIN, "scan", {"barcode": BARCODE, "mode": "minus"}, blocking=True
+        )
+
+    assert not any("external-lookup" in str(c[1]) for c in aioclient_mock.mock_calls)

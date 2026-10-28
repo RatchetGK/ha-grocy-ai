@@ -33,13 +33,15 @@
           "expiry_days": "Tage vor Ablauf benachrichtigen",
           "notify_service": "Benachrichtigungsdienst",
           "todo_entity": "Einkaufsliste (To-do-Entität)",
-          "ai_task_entity": "AI-Task-Entität"
+          "ai_task_entity": "AI-Task-Entität",
+          "external_barcode_lookup": "Unbekannte Barcodes online nachschlagen"
         },
         "data_description": {
           "expiry_days": "Produkte, deren MHD innerhalb dieser Anzahl Tage liegt, werden gemeldet.",
           "notify_service": "Dienst für Ablauf-Benachrichtigungen, z. B. notify.mobile_app_handy.",
           "todo_entity": "Produkte unter Mindestbestand werden hier eingetragen (z. B. eine Bring!-Liste).",
-          "ai_task_entity": "Liest das MHD aus Fotos. Leer lassen für die Standard-AI-Task-Entität."
+          "ai_task_entity": "Liest das MHD aus Fotos. Leer lassen für die Standard-AI-Task-Entität.",
+          "external_barcode_lookup": "Beim Einbuchen eines unbekannten Barcodes schlägt Grocy ihn bei Open Food Facts nach (kostenlos, es wird nur der Barcode übertragen) und legt das Produkt automatisch an."
         }
       }
     }

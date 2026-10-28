@@ -11,8 +11,10 @@ CONF_EXPIRY_DAYS: Final = "expiry_days"
 CONF_NOTIFY_SERVICE: Final = "notify_service"
 CONF_TODO_ENTITY: Final = "todo_entity"
 CONF_AI_TASK_ENTITY: Final = "ai_task_entity"
+CONF_EXTERNAL_LOOKUP: Final = "external_barcode_lookup"
 
 DEFAULT_EXPIRY_DAYS: Final = 3
+DEFAULT_EXTERNAL_LOOKUP: Final = True
 DEFAULT_VERIFY_SSL: Final = True
 DEFAULT_TIMEOUT: Final = 10
 
@@ -32,6 +34,7 @@ ATTR_PRICE: Final = "price"
 ATTR_LOCATION_ID: Final = "location_id"
 ATTR_SPOILED: Final = "spoiled"
 ATTR_STOCK_AMOUNT: Final = "stock_amount"
+ATTR_PRODUCT_CREATED: Final = "product_created"
 ATTR_MODE: Final = "mode"
 ATTR_SERVICE: Final = "service"
 ATTR_MESSAGE: Final = "message"
@@ -52,4 +55,5 @@ NEVER_EXPIRES_DATE: Final = "2999-12-31"
 EVENT_STOCK_ADDED: Final = "grocy_ai_stock_added"
 EVENT_STOCK_CONSUMED: Final = "grocy_ai_stock_consumed"
 EVENT_BARCODE_UNKNOWN: Final = "grocy_ai_barcode_unknown"
+EVENT_PRODUCT_CREATED: Final = "grocy_ai_product_created"
 EVENT_ERROR: Final = "grocy_ai_error"

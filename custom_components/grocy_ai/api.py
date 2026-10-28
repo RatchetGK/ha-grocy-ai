@@ -98,6 +98,20 @@ class GrocyClient:
             f"stock/products/by-barcode/{quote(barcode, safe='')}"
         )
 
+    async def external_lookup(self, barcode: str) -> dict[str, Any] | None:
+        """Look up an unknown barcode via Grocy's barcode lookup plugin and create it.
+
+        Grocy's default plugin queries Open Food Facts. Returns the
+        ``ExternalBarcodeLookupResponse`` (incl. the new product ``id``) or None
+        when nothing was found.
+        """
+        data = await self._request(
+            "GET",
+            f"stock/barcodes/external-lookup/{quote(barcode, safe='')}",
+            params={"add": "true"},
+        )
+        return data if isinstance(data, dict) and data.get("id") else None
+
     async def add_product(
         self,
         product_id: int,
