@@ -57,10 +57,11 @@ Erledigtes abhaken, neue Erkenntnisse sofort unter „Erkenntnisse“ eintragen.
 - [x] Live-Abnahme (2026-10-29): echte, unbekannte Packung per `scan` plus → `product_created: true`, Name von Open Food Facts, Bestand 1; danach minus → 0
 
 ## M3 – MHD per Foto (v0.4.0)
-- [ ] `ai.py`: Prompt + Struktur + Parsing (TT.MM.JJ, MM/JJJJ → Monatsende, …)
-- [ ] Plausibilitätsprüfung + Fallback + Event `grocy_ai_best_before_failed`
-- [ ] Service `read_best_before`; `image` in `add_stock`/`scan`
-- [ ] Tests (gemocktes `ai_task.generate_data`)
+- [x] `ai.py`: Prompt + Struktur + Parsing (TT.MM.JJ, MM/JJJJ → Monatsende, …)
+- [x] Plausibilitätsprüfung + Fallback + Event `grocy_ai_best_before_failed`
+- [x] Service `read_best_before`; `image` in `add_stock`/`scan`
+- [x] Tests (gemocktes `ai_task.generate_data`) – 50 grün
+- [ ] Release v0.4.0, HACS-Update + Neustart (nach Freigabe)
 - [ ] Abnahme mit echten Fotos (Kamera / Upload)
 
 ## M4 – Ablauf-Benachrichtigungen & Sensoren (v0.5.0)
@@ -106,3 +107,4 @@ Erledigtes abhaken, neue Erkenntnisse sofort unter „Erkenntnisse“ eintragen.
 - 2026-10-25: grocy_ai fragt beim Scannen bisher nur Grocys eigene Produktdatenbank ab. Grocy hat aber einen eingebauten externen Barcode-Lookup (Plugin `OpenFoodFactsBarcodeLookupPlugin`, Standard aktiv), per API `GET /api/stock/barcodes/external-lookup/{barcode}?add=true` → legt Produkt an und liefert die neue ID (200 mit `null`, wenn nichts gefunden).
 - 2026-10-28: Nutzer hat Open-Food-Facts-Lookup freigegeben → v0.3.0; folgende Meilensteine je +1 Minor (M3 v0.4.0, M4 v0.5.0, M5 v0.6.0). Grocys OFF-Plugin sendet nur die Barcode-Ziffern an world.openfoodfacts.org; Lagerort/Einheit aus `product_presets_*`, sonst erster Eintrag.
 - 2026-10-29: Live-Test bestätigt: per OFF angelegtes Produkt ohne Standard-Haltbarkeit → `best_before_source: unset`, MHD 2999-12-31 (wie geplant). Nutzer sollte Standard-Haltbarkeit in Grocy nachtragen.
+- 2026-10-29: HA 2026.10 validiert Service-Schemas intern mit `probatio` statt voluptuous; voluptuous-Schemas in Custom Integrations funktionieren weiter. `ai_task` löst `media-source://camera/<entity>` selbst als Schnappschuss auf.

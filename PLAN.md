@@ -95,11 +95,15 @@ flowchart LR
    → Grocy fragt Open Food Facts und legt das Produkt an → Event
    `grocy_ai_product_created`, Buchung läuft weiter. Nichts gefunden/Plugin-
    Fehler → Event `grocy_ai_barcode_unknown`, `ServiceValidationError`.
-3. Wenn `best_before_date` übergeben → direkt verwenden. Sonst wenn `image` →
-   `ai_task.generate_data` (Anhang, Struktur `{best_before_date, product_name,
-   amount, confidence}`) → Datum validieren (Format, plausibel: nicht > 15 Jahre
-   in der Zukunft, nicht deutlich in der Vergangenheit) → bei Fehler Fallback +
-   Event `grocy_ai_best_before_failed`.
+3. Wenn `best_before_date` übergeben → direkt verwenden (`manual`). Sonst wenn
+   `image` → `ai_task.generate_data` (Anhang = Media-Source-ID, Struktur
+   `{best_before_date, product_name, confidence}`, AI-Task-Entität aus den
+   Optionen, leer = HA-Standard) → Datum parsen (`YYYY-MM-DD`, `YYYY-MM`,
+   `TT.MM.JJ(JJ)`, `MM/JJ(JJ)`; Monat ohne Tag → Monatsende) → prüfen:
+   `confidence ≥ 0.5`, Datum zwischen heute − 30 Tage und heute + 15 Jahre →
+   Quelle `ai`. Bei jedem Fehler (kein AI Task, unlesbar, unsicher, unplausibel)
+   **wird trotzdem gebucht** mit Standard-Haltbarkeit; Antwortfeld `ai_error`
+   + Event `grocy_ai_best_before_failed`.
 4. Sonst berechnet **grocy_ai** das Datum selbst (Grocys API würde ohne Datum
    *heute* setzen; die Standard-Haltbarkeit wendet nur die Grocy-UI an):
    `default_best_before_days > 0` → heute + Tage (`default`); `-1` →
@@ -142,10 +146,10 @@ Stabile Schnittstelle für Tablet-App und Taster. Änderungen = SemVer-Minor
 
 | Service | Felder | Antwort (`response`) |
 |---|---|---|
-| `grocy_ai.add_stock` ✅ v0.2.0 | `barcode`/`product_id` (genau eins), `amount` (Std. 1, > 0), `best_before_date` (opt.), `price` (opt.), `location_id` (opt.), `config_entry_id` (opt.); `image` ab v0.4.0 | `{product_id, product_name, barcode, amount, best_before_date, best_before_source: manual\|default\|never\|unset (ab M3: ai), stock_amount, product_created}` |
+| `grocy_ai.add_stock` ✅ v0.2.0 | `barcode`/`product_id` (genau eins), `amount` (Std. 1, > 0), `best_before_date` (opt.), `price` (opt.), `location_id` (opt.), `config_entry_id` (opt.); `image` (opt., ab v0.4.0) | `{product_id, product_name, barcode, amount, best_before_date, best_before_source: manual\|default\|never\|unset (ab M3: ai), stock_amount, product_created, ai_confidence\|ai_error}` |
 | `grocy_ai.consume_stock` ✅ v0.2.0 | `barcode`/`product_id` (genau eins), `amount` (Std. 1), `spoiled` (Std. false), `config_entry_id` (opt.) | `{product_id, product_name, barcode, amount, spoiled, stock_amount}` |
-| `grocy_ai.scan` ✅ v0.2.0 | `barcode`, `mode: plus\|minus`, `amount`, `config_entry_id` (opt.); `image` ab v0.4.0 | wie add/consume – Komfort-Service für Taster/Tablet |
-| `grocy_ai.read_best_before` | `image` | `{best_before_date, product_name, amount, confidence}` – nur Erkennung, keine Buchung |
+| `grocy_ai.scan` ✅ v0.2.0 | `barcode`, `mode: plus\|minus`, `amount`, `config_entry_id` (opt.); `image` (opt., ab v0.4.0) | wie add/consume – Komfort-Service für Taster/Tablet |
+| `grocy_ai.read_best_before` ✅ v0.4.0 | `image` (Media-Selector), `config_entry_id` (opt.) | `{recognized: true, best_before_date, product_name, confidence}` bzw. `{recognized: false, best_before_date: null, reason}` – nur Erkennung, keine Buchung |
 | `grocy_ai.sync_shopping_list` | – | `{added: [...], skipped: [...]}` |
 | `grocy_ai.check_expiring` | `days` (opt.), `notify` (Std. true) | `{expiring: [...], expired: [...]}` |
 
@@ -157,7 +161,7 @@ Stabile Schnittstelle für Tablet-App und Taster. Änderungen = SemVer-Minor
 | `grocy_ai_stock_consumed` | `product_id, product_name, barcode, amount, spoiled, stock_amount` |
 | `grocy_ai_barcode_unknown` | `barcode, mode` (Tablet kann Produkt-Anlage anbieten) |
 | `grocy_ai_product_created` ✅ v0.3.0 | `product_id, product_name, barcode` (per Open-Food-Facts-Lookup angelegt) |
-| `grocy_ai_best_before_failed` | `barcode, reason` |
+| `grocy_ai_best_before_failed` ✅ v0.4.0 | `product_id, barcode, reason` (`ai_task_unavailable`, `ai_task_failed: …`, `no_structured_result`, `no_date`, `low_confidence`, `implausible_date`) |
 | `grocy_ai_product_expiring` | `product_id, product_name, best_before_date, days_left` |
 | `grocy_ai_shopping_item_added` | `product_id, product_name, todo_entity_id` |
 | `grocy_ai_error` | `service, message` |
@@ -183,6 +187,7 @@ Stabile Schnittstelle für Tablet-App und Taster. Änderungen = SemVer-Minor
 | D11 | Git-Autor im Repo: `RatchetGK <163332573+RatchetGK@users.noreply.github.com>` (repo-lokal) | Kein globaler Git-Name gesetzt; noreply-Adresse schützt die echte E-Mail. |
 | D12 | Lizenz MIT | Standard für HACS-Integrationen. |
 | D13 | **Repo öffentlich, Historie neu gestartet** (2026-10-25) | HACS braucht ein dauerhaft öffentliches Repo. Das zwischenzeitlich private Repo enthielt private Angaben (interne IP, Vornamen in Entitäts-IDs) in alten Commits; auf GitHub lassen sich alte Commits nicht sicher entfernen → altes Repo in `ha-grocy-ai-old` umbenannt (privat), neues öffentliches Repo mit einem sauberen Initial-Commit. Release enthält zusätzlich `grocy_ai.zip`. |
+| D16 | **MHD-Erkennung blockiert nie die Buchung**; Schwelle `confidence ≥ 0.5`, plausibel = heute − 30 Tage … heute + 15 Jahre; Monat ohne Tag = Monatsende; manuelles MHD hat Vorrang vor Foto | Ein Einkauf soll immer gebucht werden; ein falsch erkanntes Datum ist schlimmer als die Standard-Haltbarkeit; Monatsende entspricht der Bedeutung von „MHD 12/2026“. |
 | D15 | **Unbekannte Barcodes über Grocys eingebauten Barcode-Lookup** (`external-lookup?add=true`, Plugin Open Food Facts) statt eigenem OFF-Client; Option `external_barcode_lookup` (Std. an), nur bei Plus | Kostenlos, kein Key; nutzt Grocys Produkt-Voreinstellungen (Lagerort/Einheit) wie die Grocy-UI; keine zusätzliche Abhängigkeit; Minus darf nie Produkte anlegen. |
 | D14 | **Datenschutz-Schutzschichten**: Skill `commit-push`, Git-Hooks (`.githooks`: pre-commit, commit-msg, pre-push) mit `scripts/check_private_data.py`, untracked Denylist `.local/private-terms.txt`, CI-Job „Secrets & private data“ (Skript + gitleaks) | Öffentliches Repo: Secrets/private Daten dürfen nie committet werden; mehrere unabhängige Prüfungen vor Commit, vor Push und nach Push. |
 
@@ -213,11 +218,13 @@ Stabile Schnittstelle für Tablet-App und Taster. Änderungen = SemVer-Minor
 - **Abnahme:** Neuer, in Grocy unbekannter Barcode einer Markenpackung wird per
   `scan` (plus) angelegt und gebucht; Option aus → kein Lookup.
 
-### M3 – MHD per Foto (v0.4.0)
+### M3 – MHD per Foto (v0.4.0) ✅ umgesetzt 2026-10-29 (Live-Abnahme offen)
 - `read_best_before` + `image` in `add_stock`/`scan` über `ai_task`.
 - Plausibilitätsprüfung + Fallback auf Grocy-Standard.
 - **Abnahme:** Foto eines MHD-Aufdrucks (Kamera-Snapshot/Upload) → korrektes
   Datum in Grocy; unlesbares Foto → Fallback + Event.
+- **Ergebnis:** `ai.py` + Service `read_best_before`, `image` in `add_stock`/`scan`,
+  50 Tests grün (Parsing, Plausibilität, gemocktes `ai_task.generate_data`).
 
 ### M4 – Ablauf-Benachrichtigungen & Sensoren (v0.5.0)
 - Coordinator, Sensoren, tägliche Benachrichtigung, `check_expiring`.

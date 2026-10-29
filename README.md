@@ -12,7 +12,7 @@ AI and automation inside Home Assistant. Grocy stays the source of truth.
 | Config flow (Grocy URL + API key) & options | ✅ v0.1.0 |
 | Book stock by barcode (plus / minus) | ✅ v0.2.0 |
 | Unknown barcodes are created automatically via Open Food Facts (through Grocy) | ✅ v0.3.0 |
-| Best-before date from a photo via HA **AI Task** (provider-agnostic) | 🔜 v0.4.0 |
+| Best-before date from a photo via HA **AI Task** (provider-agnostic) | ✅ v0.4.0 |
 | Notifications for products expiring soon | 🔜 v0.5.0 |
 | Products below minimum stock → Bring! (any to-do entity), no duplicates | 🔜 v0.6.0 |
 | Stable services & events for a kitchen tablet / Zigbee buttons | ✅ v0.2.0 (extended later) |
@@ -63,6 +63,7 @@ repository.
 | `grocy_ai.add_stock` | Purchased: stock +amount (barcode **or** product_id, optional `best_before_date`, `price`, `location_id`) |
 | `grocy_ai.consume_stock` | Used up: stock −amount (optional `spoiled`) |
 | `grocy_ai.scan` | Barcode + `mode: plus/minus` – for buttons and tablets |
+| `grocy_ai.read_best_before` | Read the best-before date from a photo (no booking) |
 
 All services return a response (product, amount, best-before date and its
 source, new stock amount, whether the product was just created) and fire
@@ -70,6 +71,13 @@ events: `grocy_ai_stock_added`, `grocy_ai_stock_consumed`,
 `grocy_ai_product_created`, `grocy_ai_barcode_unknown`, `grocy_ai_error`.
 Without `best_before_date` the product's default shelf life configured in
 Grocy is used (`-1` or `0` = never expires).
+
+**Best-before date from a photo:** pass `image` (a camera snapshot such as
+`media-source://camera/camera.kitchen` or an uploaded photo) to `add_stock` /
+`scan`. The configured AI Task entity reads the date (`12/2026` = end of
+month). If the photo is unreadable or the AI is unsure, the booking still
+happens with the default shelf life and `grocy_ai_best_before_failed` is
+fired.
 
 Example (e.g. a Zigbee button action):
 ```yaml

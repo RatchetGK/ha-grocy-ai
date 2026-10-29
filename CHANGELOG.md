@@ -6,6 +6,15 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-29
+### Added
+- Best-before date from a photo via Home Assistant's AI Task: new service
+  `grocy_ai.read_best_before` and optional `image` for `add_stock` / `scan`.
+  Understands ISO, `DD.MM.YY(YY)` and month-only dates (end of month);
+  checks confidence and plausibility.
+- If the date cannot be read the booking still happens with the default
+  shelf life; event `grocy_ai_best_before_failed`, response field `ai_error`.
+
 ## [0.3.0] - 2026-10-28
 ### Added
 - Unknown barcodes are created automatically on a purchase (`add_stock`,
