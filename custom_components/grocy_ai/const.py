@@ -22,6 +22,7 @@ DEFAULT_TIMEOUT: Final = 10
 SERVICE_ADD_STOCK: Final = "add_stock"
 SERVICE_CONSUME_STOCK: Final = "consume_stock"
 SERVICE_SCAN: Final = "scan"
+SERVICE_READ_BEST_BEFORE: Final = "read_best_before"
 
 ATTR_CONFIG_ENTRY_ID: Final = "config_entry_id"
 ATTR_BARCODE: Final = "barcode"
@@ -38,12 +39,18 @@ ATTR_PRODUCT_CREATED: Final = "product_created"
 ATTR_MODE: Final = "mode"
 ATTR_SERVICE: Final = "service"
 ATTR_MESSAGE: Final = "message"
+ATTR_IMAGE: Final = "image"
+ATTR_AI_CONFIDENCE: Final = "ai_confidence"
+ATTR_AI_ERROR: Final = "ai_error"
+ATTR_REASON: Final = "reason"
+ATTR_RECOGNIZED: Final = "recognized"
 
 MODE_PLUS: Final = "plus"
 MODE_MINUS: Final = "minus"
 
 # Where the best-before date of a booking came from.
 BBD_SOURCE_MANUAL: Final = "manual"
+BBD_SOURCE_AI: Final = "ai"  # read from a photo via AI Task
 BBD_SOURCE_DEFAULT: Final = "default"  # product's default_best_before_days
 BBD_SOURCE_NEVER: Final = "never"  # product is configured to never expire (-1)
 BBD_SOURCE_UNSET: Final = "unset"  # product has no default (0) -> booked as never expiring
@@ -56,4 +63,5 @@ EVENT_STOCK_ADDED: Final = "grocy_ai_stock_added"
 EVENT_STOCK_CONSUMED: Final = "grocy_ai_stock_consumed"
 EVENT_BARCODE_UNKNOWN: Final = "grocy_ai_barcode_unknown"
 EVENT_PRODUCT_CREATED: Final = "grocy_ai_product_created"
+EVENT_BEST_BEFORE_FAILED: Final = "grocy_ai_best_before_failed"
 EVENT_ERROR: Final = "grocy_ai_error"

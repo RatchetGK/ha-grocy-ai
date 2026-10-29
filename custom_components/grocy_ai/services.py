@@ -1,4 +1,4 @@
-"""Services for booking Grocy stock by barcode or product id."""
+"""Services for booking Grocy stock and reading best-before dates from photos."""
 
 from __future__ import annotations
 
@@ -13,6 +13,7 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.util import dt as dt_util
 import voluptuous as vol
 
+from .ai import BestBeforeError, async_read_best_before
 from .api import (
     GrocyApiError,
     GrocyClient,
@@ -21,11 +22,14 @@ from .api import (
     GrocyNotFoundError,
 )
 from .const import (
+    ATTR_AI_CONFIDENCE,
+    ATTR_AI_ERROR,
     ATTR_AMOUNT,
     ATTR_BARCODE,
     ATTR_BEST_BEFORE_DATE,
     ATTR_BEST_BEFORE_SOURCE,
     ATTR_CONFIG_ENTRY_ID,
+    ATTR_IMAGE,
     ATTR_LOCATION_ID,
     ATTR_MESSAGE,
     ATTR_MODE,
@@ -33,17 +37,22 @@ from .const import (
     ATTR_PRODUCT_CREATED,
     ATTR_PRODUCT_ID,
     ATTR_PRODUCT_NAME,
+    ATTR_REASON,
+    ATTR_RECOGNIZED,
     ATTR_SERVICE,
     ATTR_SPOILED,
     ATTR_STOCK_AMOUNT,
+    BBD_SOURCE_AI,
     BBD_SOURCE_DEFAULT,
     BBD_SOURCE_MANUAL,
     BBD_SOURCE_NEVER,
     BBD_SOURCE_UNSET,
+    CONF_AI_TASK_ENTITY,
     CONF_EXTERNAL_LOOKUP,
     DEFAULT_EXTERNAL_LOOKUP,
     DOMAIN,
     EVENT_BARCODE_UNKNOWN,
+    EVENT_BEST_BEFORE_FAILED,
     EVENT_ERROR,
     EVENT_PRODUCT_CREATED,
     EVENT_STOCK_ADDED,
@@ -53,6 +62,7 @@ from .const import (
     NEVER_EXPIRES_DATE,
     SERVICE_ADD_STOCK,
     SERVICE_CONSUME_STOCK,
+    SERVICE_READ_BEST_BEFORE,
     SERVICE_SCAN,
 )
 
@@ -65,6 +75,16 @@ _BASE = {
     vol.Optional(ATTR_CONFIG_ENTRY_ID): cv.string,
     vol.Optional(ATTR_AMOUNT, default=1): _AMOUNT,
 }
+# Value of a media selector, e.g. {"media_content_id": "media-source://camera/camera.x",
+# "media_content_type": "image/jpeg"}.
+_IMAGE = vol.Schema(
+    {
+        vol.Required("media_content_id"): cv.string,
+        vol.Optional("media_content_type"): cv.string,
+    },
+    extra=vol.ALLOW_EXTRA,
+)
+
 _TARGET = {
     vol.Exclusive(ATTR_BARCODE, _PRODUCT_KEYS): cv.string,
     vol.Exclusive(ATTR_PRODUCT_ID, _PRODUCT_KEYS): cv.positive_int,
@@ -76,6 +96,7 @@ ADD_STOCK_SCHEMA = vol.All(
             **_BASE,
             **_TARGET,
             vol.Optional(ATTR_BEST_BEFORE_DATE): cv.date,
+            vol.Optional(ATTR_IMAGE): _IMAGE,
             vol.Optional(ATTR_PRICE): vol.All(vol.Coerce(float), vol.Range(min=0)),
             vol.Optional(ATTR_LOCATION_ID): cv.positive_int,
         }
@@ -93,6 +114,14 @@ SCAN_SCHEMA = vol.Schema(
         **_BASE,
         vol.Required(ATTR_BARCODE): cv.string,
         vol.Required(ATTR_MODE): vol.In([MODE_PLUS, MODE_MINUS]),
+        vol.Optional(ATTR_IMAGE): _IMAGE,
+    }
+)
+
+READ_BEST_BEFORE_SCHEMA = vol.Schema(
+    {
+        vol.Optional(ATTR_CONFIG_ENTRY_ID): cv.string,
+        vol.Required(ATTR_IMAGE): _IMAGE,
     }
 )
 
@@ -114,6 +143,19 @@ def async_setup_services(hass: HomeAssistant) -> None:
         data = {**call.data, ATTR_SPOILED: False}
         return await _run(hass, call, _async_consume_stock(hass, entry.runtime_data, data))
 
+    async def read_best_before(call: ServiceCall) -> ServiceResponse:
+        entry = _entry(hass, call)
+        try:
+            result = await async_read_best_before(
+                hass,
+                call.data[ATTR_IMAGE],
+                entry.options.get(CONF_AI_TASK_ENTITY),
+                dt_util.now().date(),
+            )
+        except BestBeforeError as err:
+            return {ATTR_RECOGNIZED: False, ATTR_BEST_BEFORE_DATE: None, ATTR_REASON: err.reason}
+        return {ATTR_RECOGNIZED: True, **result.as_dict()}
+
     for name, handler, schema in (
         (SERVICE_ADD_STOCK, add_stock, ADD_STOCK_SCHEMA),
         (SERVICE_CONSUME_STOCK, consume_stock, CONSUME_STOCK_SCHEMA),
@@ -122,6 +164,13 @@ def async_setup_services(hass: HomeAssistant) -> None:
         hass.services.async_register(
             DOMAIN, name, handler, schema=schema, supports_response=SupportsResponse.OPTIONAL
         )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_READ_BEST_BEFORE,
+        read_best_before,
+        schema=READ_BEST_BEFORE_SCHEMA,
+        supports_response=SupportsResponse.ONLY,
+    )
 
 
 def _entry(hass: HomeAssistant, call: ServiceCall) -> ConfigEntry[GrocyClient]:
@@ -240,10 +289,32 @@ async def _async_add_stock(
     product = details["product"]
     product_id = int(product["id"])
 
+    today = dt_util.now().date()
+    extra: dict[str, Any] = {}
     if (best_before := data.get(ATTR_BEST_BEFORE_DATE)) is not None:
         source = BBD_SOURCE_MANUAL
+    elif (image := data.get(ATTR_IMAGE)) is not None:
+        try:
+            recognized = await async_read_best_before(
+                hass, image, entry.options.get(CONF_AI_TASK_ENTITY), today
+            )
+        except BestBeforeError as err:
+            # Never block the booking: fall back to the product's default shelf life.
+            hass.bus.async_fire(
+                EVENT_BEST_BEFORE_FAILED,
+                {
+                    ATTR_PRODUCT_ID: product_id,
+                    ATTR_BARCODE: data.get(ATTR_BARCODE),
+                    ATTR_REASON: err.reason,
+                },
+            )
+            best_before, source = default_best_before(product, today)
+            extra[ATTR_AI_ERROR] = err.reason
+        else:
+            best_before, source = recognized.best_before_date, BBD_SOURCE_AI
+            extra[ATTR_AI_CONFIDENCE] = recognized.confidence
     else:
-        best_before, source = default_best_before(product, dt_util.now().date())
+        best_before, source = default_best_before(product, today)
 
     await client.add_product(
         product_id,
@@ -263,6 +334,7 @@ async def _async_add_stock(
         ATTR_BEST_BEFORE_SOURCE: source,
         ATTR_STOCK_AMOUNT: _stock_amount(after),
         ATTR_PRODUCT_CREATED: created,
+        **extra,
     }
     hass.bus.async_fire(EVENT_STOCK_ADDED, result)
     return result

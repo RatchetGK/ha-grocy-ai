@@ -19,6 +19,11 @@ add_stock:
     best_before_date:
       selector:
         date:
+    image:
+      selector:
+        media:
+          accept:
+            - image/*
     price:
       selector:
         number:
@@ -78,6 +83,11 @@ scan:
           options:
             - plus
             - minus
+    image:
+      selector:
+        media:
+          accept:
+            - image/*
     amount:
       default: 1
       selector:
@@ -85,6 +95,19 @@ scan:
           min: 0.01
           step: 0.01
           mode: box
+    config_entry_id:
+      selector:
+        config_entry:
+          integration: grocy_ai
+
+read_best_before:
+  fields:
+    image:
+      required: true
+      selector:
+        media:
+          accept:
+            - image/*
     config_entry_id:
       selector:
         config_entry:

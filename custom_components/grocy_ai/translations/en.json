@@ -67,6 +67,10 @@
           "name": "Best-before date",
           "description": "Leave empty to use the product's default shelf life from Grocy (or 'never expires')."
         },
+        "image": {
+          "name": "Photo of the best-before date",
+          "description": "Optional. A camera snapshot or uploaded photo; the AI Task entity reads the best-before date. Ignored when a best-before date is given."
+        },
         "price": {
           "name": "Price",
           "description": "Price per stock quantity unit."
@@ -119,9 +123,27 @@
           "name": "Mode",
           "description": "plus = purchased (add stock), minus = used up (consume stock)."
         },
+        "image": {
+          "name": "Photo of the best-before date",
+          "description": "Optional. A camera snapshot or uploaded photo; the AI Task entity reads the best-before date. Ignored when a best-before date is given."
+        },
         "amount": {
           "name": "Amount",
           "description": "Amount in the product's stock quantity unit."
+        },
+        "config_entry_id": {
+          "name": "Grocy instance",
+          "description": "Only needed when more than one Grocy AI entry is configured."
+        }
+      }
+    },
+    "read_best_before": {
+      "name": "Read best-before date",
+      "description": "Reads the best-before date from a photo via AI Task (no booking).",
+      "fields": {
+        "image": {
+          "name": "Photo",
+          "description": "Camera snapshot or uploaded photo of the best-before date."
         },
         "config_entry_id": {
           "name": "Grocy instance",
