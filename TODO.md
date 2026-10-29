@@ -44,7 +44,7 @@ Erledigtes abhaken, neue Erkenntnisse sofort unter „Erkenntnisse“ eintragen.
 - [x] Übersetzte Fehlermeldungen (de/en), Standard-Haltbarkeit selbst berechnet
 - [x] Release v0.2.0, HACS-Update + HA-Neustart (mit Freigabe), Integration geladen, 3 Dienste registriert
 - [x] Live-Smoke-Test: `scan` mit unbekanntem Barcode → „Barcode … is not known in Grocy“ (Verbindung + Fehlerpfad ok)
-- [ ] Manuelle Abnahme in HA: Testprodukt mit Barcode anlegen, Plus/Minus über Entwicklerwerkzeuge → Aktionen
+- [x] Manuelle Abnahme in HA (2026-10-29): Plus/Minus per `scan` über Entwicklerwerkzeuge → Aktionen erfolgreich
 
 ## M2b – Barcode-Lookup Open Food Facts (v0.3.0)
 - [x] Nutzer-Freigabe (kostenlos, unkritisch)
@@ -54,7 +54,7 @@ Erledigtes abhaken, neue Erkenntnisse sofort unter „Erkenntnisse“ eintragen.
 - [x] Event `grocy_ai_product_created`, Antwortfeld `product_created`
 - [x] Tests (29 grün)
 - [x] Release v0.3.0, HACS-Update + Neustart (mit Freigabe), Integration geladen, keine Log-Fehler
-- [ ] Live-Abnahme mit echtem, unbekanntem Barcode (Nutzer; bewusst kein Test mit Fantasie-Barcode, weil OFF Datenmüll enthält und ein Schrottprodukt anlegen könnte)
+- [x] Live-Abnahme (2026-10-29): echte, unbekannte Packung per `scan` plus → `product_created: true`, Name von Open Food Facts, Bestand 1; danach minus → 0
 
 ## M3 – MHD per Foto (v0.4.0)
 - [ ] `ai.py`: Prompt + Struktur + Parsing (TT.MM.JJ, MM/JJJJ → Monatsende, …)
@@ -105,3 +105,4 @@ Erledigtes abhaken, neue Erkenntnisse sofort unter „Erkenntnisse“ eintragen.
 - 2026-10-25: Fehlermeldungen kommen über ha-mcp/API auf Englisch (Sprache des API-Aufrufers); in der deutschen HA-UI erscheinen die de-Übersetzungen.
 - 2026-10-25: grocy_ai fragt beim Scannen bisher nur Grocys eigene Produktdatenbank ab. Grocy hat aber einen eingebauten externen Barcode-Lookup (Plugin `OpenFoodFactsBarcodeLookupPlugin`, Standard aktiv), per API `GET /api/stock/barcodes/external-lookup/{barcode}?add=true` → legt Produkt an und liefert die neue ID (200 mit `null`, wenn nichts gefunden).
 - 2026-10-28: Nutzer hat Open-Food-Facts-Lookup freigegeben → v0.3.0; folgende Meilensteine je +1 Minor (M3 v0.4.0, M4 v0.5.0, M5 v0.6.0). Grocys OFF-Plugin sendet nur die Barcode-Ziffern an world.openfoodfacts.org; Lagerort/Einheit aus `product_presets_*`, sonst erster Eintrag.
+- 2026-10-29: Live-Test bestätigt: per OFF angelegtes Produkt ohne Standard-Haltbarkeit → `best_before_source: unset`, MHD 2999-12-31 (wie geplant). Nutzer sollte Standard-Haltbarkeit in Grocy nachtragen.

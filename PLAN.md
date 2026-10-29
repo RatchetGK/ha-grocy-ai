@@ -199,7 +199,7 @@ Stabile Schnittstelle für Tablet-App und Taster. Änderungen = SemVer-Minor
   Release v0.1.0 mit `grocy_ai.zip` (neu erstellt im öffentlichen Repo, D13).
   HACS-Installation in HA steht noch aus.
 
-### M2 – Grocy-Anbindung & Barcode-Buchung (v0.2.0) ✅ umgesetzt 2026-10-25 (Live-Abnahme offen)
+### M2 – Grocy-Anbindung & Barcode-Buchung (v0.2.0) ✅ abgenommen 2026-10-29
 - `GrocyClient` (Produkt per Barcode, add, consume, volatile), Fehlerklassen.
 - Services `add_stock`, `consume_stock`, `scan` + Events.
 - **Abnahme:** Mit installiertem Grocy: Plus/Minus per Service in den
@@ -208,7 +208,7 @@ Stabile Schnittstelle für Tablet-App und Taster. Änderungen = SemVer-Minor
 - **Ergebnis:** Services + Events umgesetzt, 24 Tests grün. Fehler sind
   übersetzt (de/en) und feuern `grocy_ai_error`.
 
-### M2b – Barcode-Lookup Open Food Facts (v0.3.0) ✅ umgesetzt 2026-10-28
+### M2b – Barcode-Lookup Open Food Facts (v0.3.0) ✅ abgenommen 2026-10-29
 - Unbekannter Barcode bei Plus → Grocy legt Produkt via Open Food Facts an → Buchung.
 - **Abnahme:** Neuer, in Grocy unbekannter Barcode einer Markenpackung wird per
   `scan` (plus) angelegt und gebucht; Option aus → kein Lookup.
