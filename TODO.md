@@ -61,7 +61,8 @@ Erledigtes abhaken, neue Erkenntnisse sofort unter „Erkenntnisse“ eintragen.
 - [x] Plausibilitätsprüfung + Fallback + Event `grocy_ai_best_before_failed`
 - [x] Service `read_best_before`; `image` in `add_stock`/`scan`
 - [x] Tests (gemocktes `ai_task.generate_data`) – 50 grün
-- [ ] Release v0.4.0, HACS-Update + Neustart (nach Freigabe)
+- [x] Release v0.4.0, HACS-Update + Neustart (mit Freigabe), 4 Dienste registriert, keine Log-Fehler
+- [ ] Nutzer: AI-Task-Entität in den Optionen wählen (sonst HA-Standard; ohne Standard → `ai_error`, Buchung mit Standard-Haltbarkeit)
 - [ ] Abnahme mit echten Fotos (Kamera / Upload)
 
 ## M4 – Ablauf-Benachrichtigungen & Sensoren (v0.5.0)
