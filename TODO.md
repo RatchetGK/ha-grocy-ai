@@ -67,7 +67,7 @@ Erledigtes abhaken, neue Erkenntnisse sofort unter „Erkenntnisse“ eintragen.
 
 ## M3b – Handy-Seite mit Kamera (v0.5.0)
 - [x] `photos.py`: Upload-Endpunkt (auth), RAM-Speicher (10 Fotos, 10 min), Löschen nach KI-Abfrage
-- [x] `media_source.py`: `media-source://grocy_ai/<id>` → `async_get_media_image`
+- [x] `media_source.py`: `media-source://grocy_ai/<id>` → `async_resolve_media` mit Temp-Datei
 - [x] Service `read_barcode` (AI Task + GTIN-Prüfziffer)
 - [x] Panel `frontend/grocy-ai-panel.js` (Plus/Minus, Barcode-Foto, MHD-Foto/Datum, Ergebnis), de/en
 - [x] Tests (Upload, Auth, Medienquelle, Löschen, Barcode)
@@ -119,4 +119,4 @@ Erledigtes abhaken, neue Erkenntnisse sofort unter „Erkenntnisse“ eintragen.
 - 2026-10-28: Nutzer hat Open-Food-Facts-Lookup freigegeben → v0.3.0; folgende Meilensteine je +1 Minor (M3 v0.4.0, M4 v0.5.0, M5 v0.6.0). Grocys OFF-Plugin sendet nur die Barcode-Ziffern an world.openfoodfacts.org; Lagerort/Einheit aus `product_presets_*`, sonst erster Eintrag.
 - 2026-10-29: Live-Test bestätigt: per OFF angelegtes Produkt ohne Standard-Haltbarkeit → `best_before_source: unset`, MHD 2999-12-31 (wie geplant). Nutzer sollte Standard-Haltbarkeit in Grocy nachtragen.
 - 2026-10-29: HA 2026.10 validiert Service-Schemas intern mit `probatio` statt voluptuous; voluptuous-Schemas in Custom Integrations funktionieren weiter. `ai_task` löst `media-source://camera/<entity>` selbst als Schnappschuss auf.
-- 2026-10-31: Nutzer: Foto-Upload am Handy über den Media-Selector zu umständlich → eigene Handy-Seite (v0.5.0); M4/M5 rutschen auf v0.6.0/v0.7.0. `ai_task` holt Anhänge zuerst per `media_source.async_get_media_image` (→ eigene Medienquelle reicht, kein Dateipfad nötig); Berechtigungsprüfung nur für `camera/`- und `image/`-Quellen. Der native Barcode-Scanner der Companion-App (`bar_code/scan`) liefert Ergebnisse nur an frontend-interne Listener → für Custom-Panels nicht nutzbar.
+- 2026-10-31: Nutzer: Foto-Upload am Handy über den Media-Selector zu umständlich → eigene Handy-Seite (v0.5.0); M4/M5 rutschen auf v0.6.0/v0.7.0. `ai_task` in HA 2026.10 löst Anhänge (außer `camera/`/`image/`) per `media_source.async_resolve_media` auf und verlangt `PlayMedia.path` (lokale Datei) → Temp-Datei, nach der KI-Abfrage gelöscht. `media_source.async_get_media_image` gibt es erst nach 2026.10 (CI-Fehler). Berechtigungsprüfung nur für `camera/`- und `image/`-Quellen. Der native Barcode-Scanner der Companion-App (`bar_code/scan`) liefert Ergebnisse nur an frontend-interne Listener → für Custom-Panels nicht nutzbar.

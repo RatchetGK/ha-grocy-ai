@@ -67,8 +67,9 @@ Companion app):
 3. For purchases optionally **📷 Photograph best-before date** (or enter a date).
 4. **Book** – the result shows product, new stock and best-before date.
 
-Photos are scaled down on the phone, kept only in Home Assistant's memory and
-deleted right after the AI has read them (at the latest after 10 minutes).
+Photos are scaled down on the phone, kept in Home Assistant's memory and
+deleted right after the AI has read them (at the latest after 10 minutes). During
+the AI request a temporary file exists, because AI Task only reads local files.
 
 ## Services
 | Service | Purpose |

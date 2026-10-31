@@ -1,21 +1,27 @@
-"""Short-lived in-memory photo store for the mobile panel.
+"""Short-lived photo store for the mobile panel.
 
 The panel uploads a camera photo to ``/api/grocy_ai/photo`` and gets back a
 media source id (``media-source://grocy_ai/<id>``) that AI Task can read. Photos
-never touch the disk: they live in memory, expire after a few minutes and are
-removed right after the AI has read them.
+live in memory, expire after a few minutes and are removed right after the AI
+has read them. AI Task in HA 2026.10 only accepts local files, so while a photo
+is being read it also exists as a temporary file, deleted together with it.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
 from http import HTTPStatus
+import mimetypes
+import os
+from pathlib import Path
 import secrets
+import tempfile
 import time
 
 from aiohttp import web
 from homeassistant.components.http import KEY_HASS, HomeAssistantView
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.const import EVENT_HOMEASSISTANT_STOP
+from homeassistant.core import Event, HomeAssistant, callback
 from homeassistant.util.hass_dict import HassKey
 
 from .const import DOMAIN
@@ -35,20 +41,22 @@ class Photo:
     content: bytes
     mime_type: str
     created: float = field(default_factory=time.monotonic)
+    path: Path | None = None
 
 
 class PhotoStore:
     """Keeps a few recent photos in memory."""
 
-    def __init__(self) -> None:
+    def __init__(self, hass: HomeAssistant) -> None:
         """Start empty."""
+        self._hass = hass
         self._photos: dict[str, Photo] = {}
 
     def add(self, content: bytes, mime_type: str) -> str:
         """Store a photo and return its id."""
         self._purge()
         while len(self._photos) >= MAX_PHOTOS:
-            self._photos.pop(next(iter(self._photos)))
+            self.discard(next(iter(self._photos)))
         photo_id = secrets.token_hex(16)
         self._photos[photo_id] = Photo(content, mime_type)
         return photo_id
@@ -58,21 +66,53 @@ class PhotoStore:
         self._purge()
         return self._photos.get(photo_id)
 
+    async def async_get_path(self, photo_id: str) -> Path | None:
+        """Return a temporary file with the photo (written on first use)."""
+        if (photo := self.get(photo_id)) is None:
+            return None
+        if photo.path is None:
+            suffix = mimetypes.guess_extension(photo.mime_type) or ".jpg"
+            photo.path = await self._hass.async_add_executor_job(_write_temp, photo.content, suffix)
+        return photo.path
+
     def discard(self, photo_id: str) -> None:
-        """Forget a photo."""
-        self._photos.pop(photo_id, None)
+        """Forget a photo and delete its temporary file."""
+        if (photo := self._photos.pop(photo_id, None)) and photo.path:
+            self._hass.async_add_executor_job(_unlink, photo.path)
+
+    def clear(self) -> None:
+        """Forget all photos."""
+        for photo_id in list(self._photos):
+            self.discard(photo_id)
 
     def _purge(self) -> None:
         cutoff = time.monotonic() - PHOTO_TTL
         for photo_id in [k for k, v in self._photos.items() if v.created < cutoff]:
-            del self._photos[photo_id]
+            self.discard(photo_id)
+
+
+def _write_temp(content: bytes, suffix: str) -> Path:
+    fd, name = tempfile.mkstemp(prefix="grocy_ai_", suffix=suffix)
+    with os.fdopen(fd, "wb") as file:
+        file.write(content)
+    return Path(name)
+
+
+def _unlink(path: Path) -> None:
+    path.unlink(missing_ok=True)
 
 
 @callback
 def async_setup_photos(hass: HomeAssistant) -> None:
     """Create the store and register the upload endpoint."""
-    hass.data[DATA_PHOTOS] = PhotoStore()
+    store = hass.data[DATA_PHOTOS] = PhotoStore(hass)
     hass.http.register_view(PhotoUploadView())
+
+    @callback
+    def _on_stop(_event: Event) -> None:
+        store.clear()
+
+    hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STOP, _on_stop)
 
 
 @callback

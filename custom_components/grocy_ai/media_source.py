@@ -10,7 +10,6 @@ from homeassistant.components.media_source import (
     PlayMedia,
     Unresolvable,
 )
-from homeassistant.components.media_source.models import MediaImage
 from homeassistant.core import HomeAssistant
 
 from .const import DOMAIN
@@ -23,7 +22,7 @@ async def async_get_media_source(hass: HomeAssistant) -> MediaSource:
 
 
 class GrocyAiPhotoSource(MediaSource):
-    """Short-lived photos; readable as image, not browsable."""
+    """Short-lived uploaded photos, resolved to a temporary file; not browsable."""
 
     name = "Grocy AI"
 
@@ -31,16 +30,13 @@ class GrocyAiPhotoSource(MediaSource):
         """Initialize the source."""
         super().__init__(DOMAIN)
 
-    async def async_get_media_image(self, item: MediaSourceItem) -> MediaImage | None:
-        """Return the uploaded photo (used by AI Task attachments)."""
+    async def async_resolve_media(self, item: MediaSourceItem) -> PlayMedia:
+        """Hand the photo to AI Task as a temporary local file (HA 2026.10)."""
         store = item.hass.data.get(DATA_PHOTOS)
         if store is None or (photo := store.get(item.identifier)) is None:
-            return None
-        return MediaImage(content=photo.content, mime_type=photo.mime_type)
-
-    async def async_resolve_media(self, item: MediaSourceItem) -> PlayMedia:
-        """Photos are only handed out as images."""
-        raise Unresolvable("Grocy AI photos expire quickly and cannot be played")
+            raise Unresolvable("Grocy AI photo not found or expired")
+        path = await store.async_get_path(item.identifier)
+        return PlayMedia(url="", mime_type=photo.mime_type, path=path)
 
     async def async_browse_media(self, item: MediaSourceItem) -> BrowseMediaSource:
         """Show an empty folder: photos are private and short-lived."""

@@ -14,8 +14,9 @@ versioning follows [SemVer](https://semver.org/).
   available, otherwise the new service `grocy_ai.read_barcode` (AI Task). Only
   numbers with a valid EAN/UPC check digit are accepted.
 - Photo upload endpoint `/api/grocy_ai/photo` (HA login required) and media
-  source `media-source://grocy_ai/…`: photos stay in memory only, expire after
-  10 minutes and are deleted right after the AI has read them.
+  source `media-source://grocy_ai/…`: photos are kept in memory, expire after
+  10 minutes and are deleted right after the AI has read them (AI Task needs a
+  local file, so a temporary file exists only during the AI request).
 
 ## [0.4.0] - 2026-10-29
 ### Added
