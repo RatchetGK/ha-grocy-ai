@@ -178,7 +178,7 @@ async def _async_generate(
     except HomeAssistantError as err:
         raise BestBeforeError(f"ai_task_failed: {err}") from err
     finally:
-        async_discard_photo(hass, image["media_content_id"])
+        await async_discard_photo(hass, image["media_content_id"])
 
     result = (response or {}).get("data")
     if not isinstance(result, dict):

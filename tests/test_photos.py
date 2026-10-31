@@ -53,8 +53,9 @@ async def test_upload_and_media_source(hass: HomeAssistant, hass_client) -> None
     assert media.path is not None
     assert await hass.async_add_executor_job(media.path.read_bytes) == JPEG
 
-    hass.data[DATA_PHOTOS].discard(image["media_content_id"].removeprefix(MEDIA_SOURCE_PREFIX))
-    await hass.async_block_till_done()
+    await hass.data[DATA_PHOTOS].async_discard(
+        image["media_content_id"].removeprefix(MEDIA_SOURCE_PREFIX)
+    )
     assert not await hass.async_add_executor_job(media.path.exists)
 
 

@@ -75,8 +75,13 @@ class PhotoStore:
             photo.path = await self._hass.async_add_executor_job(_write_temp, photo.content, suffix)
         return photo.path
 
+    async def async_discard(self, photo_id: str) -> None:
+        """Forget a photo and wait until its temporary file is deleted."""
+        if (photo := self._photos.pop(photo_id, None)) and photo.path:
+            await self._hass.async_add_executor_job(_unlink, photo.path)
+
     def discard(self, photo_id: str) -> None:
-        """Forget a photo and delete its temporary file."""
+        """Forget a photo; its temporary file is deleted in the background."""
         if (photo := self._photos.pop(photo_id, None)) and photo.path:
             self._hass.async_add_executor_job(_unlink, photo.path)
 
@@ -115,11 +120,12 @@ def async_setup_photos(hass: HomeAssistant) -> None:
     hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STOP, _on_stop)
 
 
-@callback
-def async_discard_photo(hass: HomeAssistant, media_content_id: str) -> None:
+async def async_discard_photo(hass: HomeAssistant, media_content_id: str) -> None:
     """Remove an uploaded photo once it has been used (no-op for other media)."""
     if media_content_id.startswith(MEDIA_SOURCE_PREFIX) and DATA_PHOTOS in hass.data:
-        hass.data[DATA_PHOTOS].discard(media_content_id.removeprefix(MEDIA_SOURCE_PREFIX))
+        await hass.data[DATA_PHOTOS].async_discard(
+            media_content_id.removeprefix(MEDIA_SOURCE_PREFIX)
+        )
 
 
 class PhotoUploadView(HomeAssistantView):
