@@ -73,7 +73,7 @@ Erledigtes abhaken, neue Erkenntnisse sofort unter „Erkenntnisse“ eintragen.
 - [x] Tests (Upload, Auth, Medienquelle, Löschen, Barcode)
 - [x] Release v0.5.0, HACS-Update + Neustart (mit Freigabe), 5 Dienste registriert, Panel-Datei erreichbar, Upload ohne Login → 401, keine Log-Fehler
 - [x] Erster Handy-Test (2026-10-31): Buchung + OFF-Anlage ok; Fehler 1: Google `400 INVALID_ARGUMENT` (abgeschnittener Upload) → v0.5.1; Fehler 2: Companion-App öffnet nur Galerie → Live-Kamera v0.5.1
-- [ ] Release v0.5.1, HACS-Update + Neustart (nach Freigabe)
+- [x] Release v0.5.1, HACS-Update + Neustart (mit Freigabe), 5 Dienste, neue Panel-Datei ausgeliefert, keine Log-Fehler
 - [ ] Nutzer: HA per HTTPS erreichbar machen (Voraussetzung Live-Kamera) – Weg klären
 - [ ] Abnahme am Handy (Companion-App): Kamera öffnet, Barcode erkannt, MHD erkannt
 
