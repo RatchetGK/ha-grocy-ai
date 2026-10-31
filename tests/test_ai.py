@@ -6,6 +6,7 @@ from datetime import date
 from typing import Any
 
 from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
+from homeassistant.exceptions import HomeAssistantError
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry, async_capture_events
 from pytest_homeassistant_custom_component.test_util.aiohttp import AiohttpClientMocker
@@ -212,3 +213,52 @@ async def test_manual_date_wins_over_photo(
 
     assert result["best_before_source"] == "manual"
     assert not calls
+
+
+def mock_flaky_ai_task(hass: HomeAssistant, failures: int, data: Any) -> list[ServiceCall]:
+    """Fake ai_task.generate_data that is overloaded for the first ``failures`` calls."""
+    calls: list[ServiceCall] = []
+
+    async def handler(call: ServiceCall) -> dict:
+        calls.append(call)
+        if len(calls) <= failures:
+            raise HomeAssistantError('{"error": {"code": 503, "status": "UNAVAILABLE"}}')
+        return {"conversation_id": "x", "data": data}
+
+    hass.services.async_register(
+        "ai_task", "generate_data", handler, supports_response=SupportsResponse.ONLY
+    )
+    return calls
+
+
+@pytest.mark.usefixtures("entry")
+@pytest.mark.parametrize(
+    ("failures", "expected"),
+    [
+        (
+            2,
+            {
+                "recognized": True,
+                "best_before_date": "2026-11-05",
+                "product_name": None,
+                "confidence": 0.95,
+            },
+        ),
+        (3, {"recognized": False, "best_before_date": None, "reason": "ai_overloaded"}),
+    ],
+)
+async def test_read_best_before_retries_when_overloaded(
+    hass: HomeAssistant, freezer, monkeypatch: pytest.MonkeyPatch, failures: int, expected: dict
+) -> None:
+    """Temporary provider overload is retried twice before giving up."""
+    freezer.move_to("2026-10-29 12:00:00")
+    monkeypatch.setattr("custom_components.grocy_ai.ai.RETRY_DELAYS", (0, 0))
+    answer = {"best_before_date": "2026-11-05", "confidence": 0.95}
+    calls = mock_flaky_ai_task(hass, failures, answer)
+
+    result = await hass.services.async_call(
+        DOMAIN, "read_best_before", {"image": IMAGE}, blocking=True, return_response=True
+    )
+
+    assert result == expected
+    assert len(calls) == 3

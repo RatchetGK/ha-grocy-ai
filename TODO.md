@@ -74,6 +74,8 @@ Erledigtes abhaken, neue Erkenntnisse sofort unter „Erkenntnisse“ eintragen.
 - [x] Release v0.5.0, HACS-Update + Neustart (mit Freigabe), 5 Dienste registriert, Panel-Datei erreichbar, Upload ohne Login → 401, keine Log-Fehler
 - [x] Erster Handy-Test (2026-10-31): Buchung + OFF-Anlage ok; Fehler 1: Google `400 INVALID_ARGUMENT` (abgeschnittener Upload) → v0.5.1; Fehler 2: Companion-App öffnet nur Galerie → Live-Kamera v0.5.1
 - [x] Release v0.5.1, HACS-Update + Neustart (mit Freigabe), 5 Dienste, neue Panel-Datei ausgeliefert, keine Log-Fehler
+- [x] Zweiter Handy-Test (2026-10-31): Upload ok (kein 400 mehr), Google 503 „high demand“; Kamera öffnet jetzt direkt, aber keine Galerie mehr; „Zurück“ aus der Kamera landet im Dashboard → v0.5.2
+- [ ] Release v0.5.2, HACS-Update + Neustart (nach Freigabe)
 - [ ] Nutzer: HA per HTTPS erreichbar machen (Voraussetzung Live-Kamera) – Weg klären
 - [ ] Abnahme am Handy (Companion-App): Kamera öffnet, Barcode erkannt, MHD erkannt
 
@@ -125,3 +127,4 @@ Erledigtes abhaken, neue Erkenntnisse sofort unter „Erkenntnisse“ eintragen.
 - 2026-10-31: Nach dem Neustart steht `grocy_ai` ca. 1–2 min auf `not_loaded` (HA-Start auf dem Pi, Zustand `NOT_RUNNING`) – kein Fehler, abwarten.
 - 2026-10-31: `request.content.read(n)` (aiohttp) liefert nur die bereits empfangenen Bytes → große Uploads abgeschnitten; ganzen Body per `iter_chunked` lesen. Test nutzt jetzt ~600 KB.
 - 2026-10-31: Companion-App (Android) ignoriert `capture` am Datei-Input → nur Galerie. Live-Kamera per `getUserMedia` geht nur in sicherem Kontext (HTTPS/localhost); die lokale HA-Instanz läuft per HTTP.
+- 2026-10-31: Mit v0.5.1 öffnet die Companion-App bei `capture` direkt die Kamera (vorher Galerie – Verhalten wechselt je nach Input) → zwei Knöpfe (Kamera mit `capture`, Galerie ohne). Rückkehr aus der Kamera-App per „Zurück“ navigierte vermutlich die Seite zurück → History-Eintrag als Puffer + Eingaben in `localStorage` (15 min).

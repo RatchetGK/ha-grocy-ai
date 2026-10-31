@@ -6,6 +6,19 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.5.2] - 2026-10-31
+### Changed
+- Phone page: camera **and** gallery button for barcode and best-before date.
+- The best-before date is read right after taking the photo and filled into
+  the date field, so it can be checked or corrected before booking (no double
+  booking when the AI fails).
+- Inputs survive a reload of the app for 15 minutes; leaving the camera app
+  with "back" no longer navigates away from the page.
+
+### Fixed
+- Temporary AI provider overload (e.g. Google `503 UNAVAILABLE`, `429`) is
+  retried twice (after 2 s and 5 s); afterwards the reason is `ai_overloaded`.
+
 ## [0.5.1] - 2026-10-31
 ### Fixed
 - Photo upload read only the first part of larger photos; the AI provider

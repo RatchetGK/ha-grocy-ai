@@ -4,6 +4,8 @@
 const MAX_SIDE = 1600; // px, photos are scaled down before upload
 const BARCODE_FORMATS = ["ean_13", "ean_8", "upc_a", "upc_e"];
 const SCAN_INTERVAL = 250; // ms between live barcode detections
+const STATE_KEY = "grocy_ai_panel";
+const STATE_TTL = 15 * 60 * 1000; // inputs survive a reload of the app for 15 min
 
 const TEXTS = {
   en: {
@@ -11,14 +13,15 @@ const TEXTS = {
     plus: "Purchased (+)",
     minus: "Used (−)",
     barcode: "Barcode",
-    scan: "Camera",
+    camera: "Camera",
+    gallery: "Gallery",
     amount: "Amount",
     bbd: "Best-before date",
     bbdPhoto: "Photograph best-before date",
-    bbdOr: "or enter date",
-    remove: "Remove",
+    bbdOr: "or enter / correct date",
     book: "Book",
     reading: "Reading barcode …",
+    readingBbd: "Reading best-before date …",
     booking: "Booking …",
     noBarcode: "No barcode recognized – please try again or type it in.",
     needBarcode: "Please scan or enter a barcode first.",
@@ -31,6 +34,9 @@ const TEXTS = {
       never: "never expires",
       unset: "no default shelf life set",
     },
+    bbdFound: "Recognized from photo",
+    bbdUnclear: "Best-before date not clearly readable – photograph closer/sharper or enter it.",
+    aiOverloaded: "The AI is overloaded right now – please try again in a moment.",
     aiError: "Best-before date not readable from photo, default used",
     error: "Error",
     shoot: "Take photo",
@@ -38,22 +44,23 @@ const TEXTS = {
     camBarcode: "Hold the barcode in the frame",
     camBbd: "Best-before date sharp and large in the frame",
     noLiveCamera:
-      "The camera can only be opened directly when Home Assistant is used via HTTPS. " +
-      "Until then pick a photo.",
+      "The camera opens inside this page only when Home Assistant is used via HTTPS; " +
+      "otherwise the phone's camera app is used.",
   },
   de: {
     title: "Grocy AI",
     plus: "Eingekauft (+)",
     minus: "Verbraucht (−)",
     barcode: "Barcode",
-    scan: "Kamera",
+    camera: "Kamera",
+    gallery: "Galerie",
     amount: "Menge",
     bbd: "MHD",
     bbdPhoto: "MHD fotografieren",
-    bbdOr: "oder Datum eingeben",
-    remove: "Entfernen",
+    bbdOr: "oder Datum eingeben / korrigieren",
     book: "Buchen",
     reading: "Lese Barcode …",
+    readingBbd: "Lese MHD …",
     booking: "Buche …",
     noBarcode: "Kein Barcode erkannt – bitte nochmal versuchen oder eintippen.",
     needBarcode: "Bitte zuerst einen Barcode scannen oder eingeben.",
@@ -66,6 +73,9 @@ const TEXTS = {
       never: "läuft nie ab",
       unset: "keine Standard-Haltbarkeit hinterlegt",
     },
+    bbdFound: "Vom Foto erkannt",
+    bbdUnclear: "MHD nicht sicher lesbar – näher/schärfer fotografieren oder Datum eingeben.",
+    aiOverloaded: "Die KI ist gerade überlastet – bitte gleich nochmal versuchen.",
     aiError: "MHD auf dem Foto nicht lesbar, Standard verwendet",
     error: "Fehler",
     shoot: "Auslösen",
@@ -73,8 +83,8 @@ const TEXTS = {
     camBarcode: "Barcode ins Bild halten",
     camBbd: "MHD groß und scharf ins Bild",
     noLiveCamera:
-      "Die Kamera lässt sich nur direkt öffnen, wenn Home Assistant über HTTPS " +
-      "aufgerufen wird. Bis dahin ein Foto auswählen.",
+      "Die Kamera öffnet sich nur innerhalb dieser Seite, wenn Home Assistant über HTTPS " +
+      "läuft; sonst wird die Kamera-App des Handys verwendet.",
   },
 };
 
@@ -93,9 +103,11 @@ class GrocyAiPanel extends HTMLElement {
     this._barcode = "";
     this._amount = 1;
     this._bbdDate = "";
-    this._bbdPhoto = null; // {blob, url}
+    this._bbdConfidence = null; // set while the date comes unchanged from a photo
+    this._bbdInfo = null; // {ok, text}
     this._busy = "";
     this._message = null; // {ok, html}
+    this._restore();
   }
 
   set hass(hass) {
@@ -120,10 +132,44 @@ class GrocyAiPanel extends HTMLElement {
     return (this._hass?.language || "en").startsWith("de") ? TEXTS.de : TEXTS.en;
   }
 
+  // The Companion app may reload the page while the camera app is open;
+  // keep the inputs so the user does not have to start over.
+  _save() {
+    try {
+      localStorage.setItem(
+        STATE_KEY,
+        JSON.stringify({
+          ts: Date.now(),
+          mode: this._mode,
+          barcode: this._barcode,
+          amount: this._amount,
+          bbdDate: this._bbdDate,
+          bbdConfidence: this._bbdConfidence,
+        })
+      );
+    } catch (_err) {
+      // storage not available
+    }
+  }
+
+  _restore() {
+    try {
+      const state = JSON.parse(localStorage.getItem(STATE_KEY) || "null");
+      if (!state || Date.now() - state.ts > STATE_TTL) return;
+      this._mode = state.mode || "plus";
+      this._barcode = state.barcode || "";
+      this._amount = state.amount || 1;
+      this._bbdDate = state.bbdDate || "";
+      this._bbdConfidence = state.bbdConfidence ?? null;
+    } catch (_err) {
+      // ignore broken state
+    }
+  }
+
   _render() {
     const t = this._t;
     const plus = this._mode === "plus";
-    const busy = Boolean(this._busy);
+    const busy = this._busy ? "disabled" : "";
     this.shadowRoot.innerHTML = `
       <style>${STYLE}</style>
       <div class="toolbar">
@@ -139,7 +185,8 @@ class GrocyAiPanel extends HTMLElement {
         <label>${t.barcode}</label>
         <div class="row">
           <input id="barcode" inputmode="numeric" autocomplete="off" value="${esc(this._barcode)}">
-          <button id="scan" class="secondary" ${busy ? "disabled" : ""}>📷 ${t.scan}</button>
+          <button id="scan-camera" class="secondary icon" title="${t.camera}" ${busy}>📷</button>
+          <button id="scan-gallery" class="secondary icon" title="${t.gallery}" ${busy}>🖼️</button>
         </div>
 
         <label>${t.amount}</label>
@@ -148,21 +195,22 @@ class GrocyAiPanel extends HTMLElement {
         ${
           plus
             ? `<label>${t.bbd}</label>
+               <div class="row">
+                 <button id="bbd-camera" class="secondary grow" ${busy}>📷 ${t.bbdPhoto}</button>
+                 <button id="bbd-gallery" class="secondary icon" title="${t.gallery}" ${busy}>🖼️</button>
+               </div>
                ${
-                 this._bbdPhoto
-                   ? `<div class="row photo">
-                        <img src="${this._bbdPhoto.url}" alt="">
-                        <button id="bbd-remove" class="secondary">✕ ${t.remove}</button>
-                      </div>`
-                   : `<button id="bbd-photo" class="secondary wide" ${busy ? "disabled" : ""}>📷 ${t.bbdPhoto}</button>
-                      <div class="hint">${t.bbdOr}</div>
-                      <input id="bbd-date" type="date" value="${esc(this._bbdDate)}">`
-               }`
+                 this._bbdInfo
+                   ? `<div class="info ${this._bbdInfo.ok ? "ok" : "err"}">${esc(this._bbdInfo.text)}</div>`
+                   : ""
+               }
+               <div class="hint">${t.bbdOr}</div>
+               <input id="bbd-date" type="date" value="${esc(this._bbdDate)}">`
             : ""
         }
 
-        <button id="book" class="primary" ${busy ? "disabled" : ""}>
-          ${busy ? esc(this._busy) : t.book}
+        <button id="book" class="primary" ${busy}>
+          ${this._busy ? esc(this._busy) : t.book}
         </button>
 
         ${
@@ -172,7 +220,8 @@ class GrocyAiPanel extends HTMLElement {
         }
         ${canUseLiveCamera() ? "" : `<div class="hint small">ℹ️ ${t.noLiveCamera}</div>`}
       </div>
-      <input id="file" type="file" accept="image/*" capture="environment" hidden>
+      <input id="file-camera" type="file" accept="image/*" capture="environment" hidden>
+      <input id="file-gallery" type="file" accept="image/*" hidden>
     `;
     const $ = (id) => this.shadowRoot.getElementById(id);
     const menu = this.shadowRoot.querySelector("ha-menu-button");
@@ -181,18 +230,33 @@ class GrocyAiPanel extends HTMLElement {
 
     $("plus").onclick = () => this._setMode("plus");
     $("minus").onclick = () => this._setMode("minus");
-    $("barcode").oninput = (ev) => (this._barcode = ev.target.value.trim());
-    $("amount").oninput = (ev) => (this._amount = ev.target.value);
-    $("scan").onclick = () => this._scanBarcode();
+    $("barcode").oninput = (ev) => {
+      this._barcode = ev.target.value.trim();
+      this._save();
+    };
+    $("amount").oninput = (ev) => {
+      this._amount = ev.target.value;
+      this._save();
+    };
+    $("scan-camera").onclick = () => this._scanBarcode("camera");
+    $("scan-gallery").onclick = () => this._scanBarcode("gallery");
     $("book").onclick = () => this._book();
-    if ($("bbd-photo")) $("bbd-photo").onclick = () => this._photographBbd();
-    if ($("bbd-date")) $("bbd-date").oninput = (ev) => (this._bbdDate = ev.target.value);
-    if ($("bbd-remove")) $("bbd-remove").onclick = () => this._clearBbdPhoto(true);
+    if (plus) {
+      $("bbd-camera").onclick = () => this._readBbd("camera");
+      $("bbd-gallery").onclick = () => this._readBbd("gallery");
+      $("bbd-date").oninput = (ev) => {
+        this._bbdDate = ev.target.value;
+        this._bbdConfidence = null;
+        this._bbdInfo = null;
+        this._save();
+      };
+    }
   }
 
   _setMode(mode) {
     this._mode = mode;
     this._message = null;
+    this._save();
     this._render();
   }
 
@@ -202,22 +266,27 @@ class GrocyAiPanel extends HTMLElement {
   }
 
   // Returns {code} (barcode detected live), {blob} (photo) or null (cancelled).
-  async _capture(kind) {
-    if (canUseLiveCamera()) {
+  async _capture(kind, source) {
+    if (source === "camera" && canUseLiveCamera()) {
       try {
         return await this._liveCapture(kind);
       } catch (err) {
-        // Permission denied or no camera: fall back to the file picker.
+        // Permission denied or no camera: fall back to the camera app.
         console.warn("grocy_ai: live camera unavailable", err);
       }
     }
-    const file = await this._pickFile();
+    const file = await this._pickFile(source);
     return file ? { blob: (await shrink(file)).blob } : null;
   }
 
-  _pickFile() {
+  _pickFile(source) {
+    // Leaving the camera app with "back" can also navigate the page back;
+    // an extra history entry on the same URL catches that.
+    if (!history.state?.grocyAiGuard) {
+      history.pushState({ grocyAiGuard: true }, "", location.href);
+    }
     return new Promise((resolve) => {
-      const input = this.shadowRoot.getElementById("file");
+      const input = this.shadowRoot.getElementById(`file-${source}`);
       input.onchange = () => {
         const file = input.files?.[0] || null;
         input.value = "";
@@ -288,12 +357,13 @@ class GrocyAiPanel extends HTMLElement {
     });
   }
 
-  async _scanBarcode() {
-    const shot = await this._capture("barcode");
+  async _scanBarcode(source) {
+    const shot = await this._capture("barcode", source);
     if (!shot) return;
     this._message = null;
     if (shot.code) {
       this._barcode = shot.code;
+      this._save();
       this._render();
       return;
     }
@@ -302,10 +372,12 @@ class GrocyAiPanel extends HTMLElement {
       let code = await detectInImage(shot.blob);
       if (!code) {
         const result = await this._call("read_barcode", { image: await this._upload(shot.blob) });
-        code = result?.recognized ? result.barcode : "";
+        if (result?.recognized) code = result.barcode;
+        else if (result?.reason === "ai_overloaded") throw new Error(this._t.aiOverloaded);
       }
       if (code) {
         this._barcode = code;
+        this._save();
       } else {
         this._message = { ok: false, html: esc(this._t.noBarcode) };
       }
@@ -315,19 +387,31 @@ class GrocyAiPanel extends HTMLElement {
     this._setBusy("");
   }
 
-  async _photographBbd() {
-    const shot = await this._capture("bbd");
+  // The date is read right away so it can be checked (and corrected) before booking.
+  async _readBbd(source) {
+    const t = this._t;
+    const shot = await this._capture("bbd", source);
     if (!shot?.blob) return;
-    this._clearBbdPhoto(false);
-    this._bbdPhoto = { blob: shot.blob, url: URL.createObjectURL(shot.blob) };
-    this._bbdDate = "";
-    this._render();
-  }
-
-  _clearBbdPhoto(render) {
-    if (this._bbdPhoto) URL.revokeObjectURL(this._bbdPhoto.url);
-    this._bbdPhoto = null;
-    if (render) this._render();
+    this._bbdInfo = null;
+    this._setBusy(t.readingBbd);
+    try {
+      const result = await this._call("read_best_before", {
+        image: await this._upload(shot.blob),
+      });
+      if (result?.recognized) {
+        this._bbdDate = result.best_before_date;
+        this._bbdConfidence = result.confidence;
+        const percent = Math.round((result.confidence || 0) * 100);
+        this._bbdInfo = { ok: true, text: `✓ ${t.bbdFound} (${percent} %)` };
+      } else {
+        const overloaded = result?.reason === "ai_overloaded";
+        this._bbdInfo = { ok: false, text: overloaded ? t.aiOverloaded : t.bbdUnclear };
+      }
+      this._save();
+    } catch (err) {
+      this._bbdInfo = { ok: false, text: `${t.error}: ${err.message || err}` };
+    }
+    this._setBusy("");
   }
 
   async _book() {
@@ -339,30 +423,33 @@ class GrocyAiPanel extends HTMLElement {
     }
     this._message = null;
     this._setBusy(t.booking);
+    const plus = this._mode === "plus";
+    const fromPhoto = plus && this._bbdDate && this._bbdConfidence !== null;
     try {
-      const plus = this._mode === "plus";
       const data = { barcode: this._barcode, amount: Number(this._amount) || 1 };
-      if (plus && this._bbdPhoto) data.image = await this._upload(this._bbdPhoto.blob);
-      else if (plus && this._bbdDate) data.best_before_date = this._bbdDate;
+      if (plus && this._bbdDate) data.best_before_date = this._bbdDate;
       const res = await this._call(plus ? "add_stock" : "consume_stock", data);
-      this._message = { ok: true, html: this._describe(res) };
+      this._message = { ok: true, html: this._describe(res, fromPhoto) };
       this._barcode = "";
       this._amount = 1;
       this._bbdDate = "";
-      this._clearBbdPhoto(false);
+      this._bbdConfidence = null;
+      this._bbdInfo = null;
+      this._save();
     } catch (err) {
       this._message = { ok: false, html: `${t.error}: ${esc(err.message || err)}` };
     }
     this._setBusy("");
   }
 
-  _describe(res) {
+  _describe(res, fromPhoto) {
     const t = this._t;
     const sign = this._mode === "plus" ? "+" : "−";
     let html = `✅ <b>${esc(res.product_name)}</b>: ${sign}${esc(res.amount)} → ${t.stock} ${esc(res.stock_amount)}`;
     if (res.best_before_date) {
       const date = res.best_before_date.startsWith("2999") ? "∞" : esc(res.best_before_date);
-      html += `<br>${t.bbd}: ${date} (${esc(t.src[res.best_before_source] || res.best_before_source)})`;
+      const source = fromPhoto ? "ai" : res.best_before_source;
+      html += `<br>${t.bbd}: ${date} (${esc(t.src[source] || source)})`;
     }
     if (res.ai_error) html += `<br>⚠️ ${t.aiError} (${esc(res.ai_error)})`;
     if (res.product_created) html += `<br>🆕 ${t.created}`;
@@ -446,7 +533,7 @@ const STYLE = `
   label { margin-top: 8px; font-size: 14px; color: var(--secondary-text-color); }
   input { font-size: 18px; padding: 12px; border-radius: 10px; border: 1px solid var(--divider-color);
     background: var(--card-background-color); color: var(--primary-text-color); min-width: 0; }
-  .row { display: flex; gap: 8px; align-items: center; }
+  .row { display: flex; gap: 8px; align-items: stretch; }
   .row input { flex: 1; }
   button { font-size: 16px; padding: 12px 16px; border-radius: 10px; border: none; cursor: pointer; }
   button:disabled { opacity: 0.6; }
@@ -454,14 +541,17 @@ const STYLE = `
     color: var(--text-primary-color, #fff); }
   .secondary { background: var(--secondary-background-color, #e0e0e0); color: var(--primary-text-color);
     border: 1px solid var(--divider-color); white-space: nowrap; }
-  .wide { width: 100%; padding: 16px; }
+  .icon { font-size: 22px; padding: 10px 14px; }
+  .grow { flex: 1; padding: 16px; }
   .segment { display: grid; grid-template-columns: 1fr 1fr; gap: 0; border-radius: 10px; overflow: hidden;
     border: 1px solid var(--divider-color); }
   .segment button { border-radius: 0; background: var(--card-background-color); color: var(--primary-text-color); }
   .segment button.active { background: var(--primary-color); color: var(--text-primary-color, #fff); }
   .hint { text-align: center; font-size: 13px; color: var(--secondary-text-color); }
   .hint.small { margin-top: 16px; text-align: left; }
-  .photo img { width: 96px; height: 96px; object-fit: cover; border-radius: 10px; }
+  .info { font-size: 14px; padding: 8px 12px; border-radius: 8px; background: var(--card-background-color); }
+  .info.ok { color: var(--success-color, #43a047); }
+  .info.err { color: var(--error-color, #db4437); }
   .msg { margin-top: 12px; padding: 14px; border-radius: 10px; line-height: 1.5; overflow-wrap: anywhere;
     background: var(--card-background-color); border-left: 6px solid; }
   .msg.ok { border-color: var(--success-color, #43a047); }

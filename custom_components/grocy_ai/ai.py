@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import asyncio
 import calendar
 from dataclasses import dataclass
 from datetime import date, timedelta
+import logging
 import re
 from typing import Any
 
@@ -13,8 +15,15 @@ from homeassistant.exceptions import HomeAssistantError
 
 from .photos import async_discard_photo
 
+_LOGGER = logging.getLogger(__name__)
+
 AI_TASK_DOMAIN = "ai_task"
 AI_TASK_SERVICE = "generate_data"
+
+# Temporary provider errors (e.g. Google "503 UNAVAILABLE ... high demand") are
+# retried after these delays in seconds.
+RETRY_DELAYS: tuple[float, ...] = (2, 5)
+OVERLOAD_MARKERS = ("503", "unavailable", "overloaded", "high demand", "429", "resource_exhausted")
 
 # Below this confidence a recognized date is not trusted.
 MIN_CONFIDENCE = 0.5
@@ -172,11 +181,19 @@ async def _async_generate(
         data["entity_id"] = ai_task_entity
 
     try:
-        response = await hass.services.async_call(
-            AI_TASK_DOMAIN, AI_TASK_SERVICE, data, blocking=True, return_response=True
-        )
-    except HomeAssistantError as err:
-        raise BestBeforeError(f"ai_task_failed: {err}") from err
+        for delay in (*RETRY_DELAYS, None):
+            try:
+                response = await hass.services.async_call(
+                    AI_TASK_DOMAIN, AI_TASK_SERVICE, data, blocking=True, return_response=True
+                )
+                break
+            except HomeAssistantError as err:
+                if not _is_overloaded(err):
+                    raise BestBeforeError(f"ai_task_failed: {err}") from err
+                if delay is None:
+                    raise BestBeforeError("ai_overloaded") from err
+                _LOGGER.debug("AI provider overloaded, retrying in %ss: %s", delay, err)
+                await asyncio.sleep(delay)
     finally:
         await async_discard_photo(hass, image["media_content_id"])
 
@@ -184,6 +201,12 @@ async def _async_generate(
     if not isinstance(result, dict):
         raise BestBeforeError("no_structured_result")
     return result
+
+
+def _is_overloaded(err: Exception) -> bool:
+    """Whether the provider error is temporary (overload / rate limit)."""
+    text = str(err).lower()
+    return any(marker in text for marker in OVERLOAD_MARKERS)
 
 
 def is_valid_gtin(value: str) -> bool:

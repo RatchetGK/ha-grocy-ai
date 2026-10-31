@@ -62,10 +62,11 @@ repository.
 After setup a **Grocy AI** entry appears in the sidebar (also in the
 Companion app):
 1. Choose **Purchased (+)** or **Used (−)**.
-2. **📷 Camera** next to the barcode opens a live camera view; the barcode is
-   detected live by the browser (if supported), otherwise take a photo and AI
-   Task reads it. Typing or a hardware scanner works too.
-3. For purchases optionally **📷 Photograph best-before date** (or enter a date).
+2. **📷** next to the barcode opens the camera, **🖼️** the gallery; the barcode
+   is detected by the browser (if supported), otherwise AI Task reads it.
+   Typing or a hardware scanner works too.
+3. For purchases optionally **📷 Photograph best-before date** (or 🖼️): the
+   date is read right away and filled in – check or correct it.
 4. **Book** – the result shows product, new stock and best-before date.
 
 **The live camera requires Home Assistant to be opened via HTTPS** (e.g. Home
