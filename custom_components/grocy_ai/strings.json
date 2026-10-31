@@ -150,6 +150,20 @@
           "description": "Only needed when more than one Grocy AI entry is configured."
         }
       }
+    },
+    "read_barcode": {
+      "name": "Read barcode",
+      "description": "Reads the barcode number from a photo via AI Task (no booking). Only numbers with a valid check digit are returned.",
+      "fields": {
+        "image": {
+          "name": "Photo",
+          "description": "Camera snapshot or uploaded photo of the barcode."
+        },
+        "config_entry_id": {
+          "name": "Grocy instance",
+          "description": "Only needed when more than one Grocy AI entry is configured."
+        }
+      }
     }
   },
   "selector": {

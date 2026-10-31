@@ -65,14 +65,24 @@ Erledigtes abhaken, neue Erkenntnisse sofort unter „Erkenntnisse“ eintragen.
 - [ ] Nutzer: AI-Task-Entität in den Optionen wählen (sonst HA-Standard; ohne Standard → `ai_error`, Buchung mit Standard-Haltbarkeit)
 - [ ] Abnahme mit echten Fotos (Kamera / Upload)
 
-## M4 – Ablauf-Benachrichtigungen & Sensoren (v0.5.0)
+## M3b – Handy-Seite mit Kamera (v0.5.0)
+- [x] `photos.py`: Upload-Endpunkt (auth), RAM-Speicher (10 Fotos, 10 min), Löschen nach KI-Abfrage
+- [x] `media_source.py`: `media-source://grocy_ai/<id>` → `async_get_media_image`
+- [x] Service `read_barcode` (AI Task + GTIN-Prüfziffer)
+- [x] Panel `frontend/grocy-ai-panel.js` (Plus/Minus, Barcode-Foto, MHD-Foto/Datum, Ergebnis), de/en
+- [x] Tests (Upload, Auth, Medienquelle, Löschen, Barcode)
+- [ ] Release v0.5.0, HACS-Update + Neustart (nach Freigabe)
+- [ ] Abnahme am Handy (Companion-App): Kamera öffnet, Barcode erkannt, MHD erkannt
+- [ ] Später prüfen: Live-Scan per Kamera-Video (`getUserMedia`) statt Foto
+
+## M4 – Ablauf-Benachrichtigungen & Sensoren (v0.6.0)
 - [ ] `coordinator.py` (Polling `/stock/volatile`)
 - [ ] Sensoren expiring/expired/missing
 - [ ] Tägliche Benachrichtigung zur Uhrzeit X (Options-Flow), max. 1×/Tag
 - [ ] Service `check_expiring`, Event `grocy_ai_product_expiring`
 - [ ] Tests
 
-## M5 – Bring!-Sync (v0.6.0)
+## M5 – Bring!-Sync (v0.7.0)
 - [ ] `shopping.py`: Abgleich `todo.get_items` (needs_action), normalisierter Vergleich
 - [ ] Store für selbst hinzugefügte Produkte (kein Re-Add bis Bestand wieder ok)
 - [ ] Service `sync_shopping_list`, Event `grocy_ai_shopping_item_added`
@@ -109,3 +119,4 @@ Erledigtes abhaken, neue Erkenntnisse sofort unter „Erkenntnisse“ eintragen.
 - 2026-10-28: Nutzer hat Open-Food-Facts-Lookup freigegeben → v0.3.0; folgende Meilensteine je +1 Minor (M3 v0.4.0, M4 v0.5.0, M5 v0.6.0). Grocys OFF-Plugin sendet nur die Barcode-Ziffern an world.openfoodfacts.org; Lagerort/Einheit aus `product_presets_*`, sonst erster Eintrag.
 - 2026-10-29: Live-Test bestätigt: per OFF angelegtes Produkt ohne Standard-Haltbarkeit → `best_before_source: unset`, MHD 2999-12-31 (wie geplant). Nutzer sollte Standard-Haltbarkeit in Grocy nachtragen.
 - 2026-10-29: HA 2026.10 validiert Service-Schemas intern mit `probatio` statt voluptuous; voluptuous-Schemas in Custom Integrations funktionieren weiter. `ai_task` löst `media-source://camera/<entity>` selbst als Schnappschuss auf.
+- 2026-10-31: Nutzer: Foto-Upload am Handy über den Media-Selector zu umständlich → eigene Handy-Seite (v0.5.0); M4/M5 rutschen auf v0.6.0/v0.7.0. `ai_task` holt Anhänge zuerst per `media_source.async_get_media_image` (→ eigene Medienquelle reicht, kein Dateipfad nötig); Berechtigungsprüfung nur für `camera/`- und `image/`-Quellen. Der native Barcode-Scanner der Companion-App (`bar_code/scan`) liefert Ergebnisse nur an frontend-interne Listener → für Custom-Panels nicht nutzbar.

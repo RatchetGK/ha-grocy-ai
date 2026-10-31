@@ -150,6 +150,20 @@
           "description": "Nur nötig, wenn mehrere Grocy-AI-Einträge eingerichtet sind."
         }
       }
+    },
+    "read_barcode": {
+      "name": "Barcode auslesen",
+      "description": "Liest die Barcode-Nummer per AI Task aus einem Foto (ohne Buchung). Nur Nummern mit gültiger Prüfziffer werden zurückgegeben.",
+      "fields": {
+        "image": {
+          "name": "Foto",
+          "description": "Kamera-Schnappschuss oder hochgeladenes Foto des Barcodes."
+        },
+        "config_entry_id": {
+          "name": "Grocy-Instanz",
+          "description": "Nur nötig, wenn mehrere Grocy-AI-Einträge eingerichtet sind."
+        }
+      }
     }
   },
   "selector": {

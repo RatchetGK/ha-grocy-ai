@@ -13,7 +13,7 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.util import dt as dt_util
 import voluptuous as vol
 
-from .ai import BestBeforeError, async_read_best_before
+from .ai import BestBeforeError, async_read_barcode, async_read_best_before
 from .api import (
     GrocyApiError,
     GrocyClient,
@@ -62,6 +62,7 @@ from .const import (
     NEVER_EXPIRES_DATE,
     SERVICE_ADD_STOCK,
     SERVICE_CONSUME_STOCK,
+    SERVICE_READ_BARCODE,
     SERVICE_READ_BEST_BEFORE,
     SERVICE_SCAN,
 )
@@ -118,7 +119,7 @@ SCAN_SCHEMA = vol.Schema(
     }
 )
 
-READ_BEST_BEFORE_SCHEMA = vol.Schema(
+READ_IMAGE_SCHEMA = vol.Schema(
     {
         vol.Optional(ATTR_CONFIG_ENTRY_ID): cv.string,
         vol.Required(ATTR_IMAGE): _IMAGE,
@@ -156,6 +157,16 @@ def async_setup_services(hass: HomeAssistant) -> None:
             return {ATTR_RECOGNIZED: False, ATTR_BEST_BEFORE_DATE: None, ATTR_REASON: err.reason}
         return {ATTR_RECOGNIZED: True, **result.as_dict()}
 
+    async def read_barcode(call: ServiceCall) -> ServiceResponse:
+        entry = _entry(hass, call)
+        try:
+            barcode = await async_read_barcode(
+                hass, call.data[ATTR_IMAGE], entry.options.get(CONF_AI_TASK_ENTITY)
+            )
+        except BestBeforeError as err:
+            return {ATTR_RECOGNIZED: False, ATTR_BARCODE: None, ATTR_REASON: err.reason}
+        return {ATTR_RECOGNIZED: True, ATTR_BARCODE: barcode}
+
     for name, handler, schema in (
         (SERVICE_ADD_STOCK, add_stock, ADD_STOCK_SCHEMA),
         (SERVICE_CONSUME_STOCK, consume_stock, CONSUME_STOCK_SCHEMA),
@@ -164,13 +175,17 @@ def async_setup_services(hass: HomeAssistant) -> None:
         hass.services.async_register(
             DOMAIN, name, handler, schema=schema, supports_response=SupportsResponse.OPTIONAL
         )
-    hass.services.async_register(
-        DOMAIN,
-        SERVICE_READ_BEST_BEFORE,
-        read_best_before,
-        schema=READ_BEST_BEFORE_SCHEMA,
-        supports_response=SupportsResponse.ONLY,
-    )
+    for name, handler in (
+        (SERVICE_READ_BEST_BEFORE, read_best_before),
+        (SERVICE_READ_BARCODE, read_barcode),
+    ):
+        hass.services.async_register(
+            DOMAIN,
+            name,
+            handler,
+            schema=READ_IMAGE_SCHEMA,
+            supports_response=SupportsResponse.ONLY,
+        )
 
 
 def _entry(hass: HomeAssistant, call: ServiceCall) -> ConfigEntry[GrocyClient]:

@@ -18,11 +18,17 @@ DEFAULT_EXTERNAL_LOOKUP: Final = True
 DEFAULT_VERIFY_SSL: Final = True
 DEFAULT_TIMEOUT: Final = 10
 
+# Mobile panel
+PANEL_URL_PATH: Final = "grocy-ai"
+PANEL_ELEMENT: Final = "grocy-ai-panel"
+STATIC_URL: Final = "/grocy_ai_static"
+
 # Services
 SERVICE_ADD_STOCK: Final = "add_stock"
 SERVICE_CONSUME_STOCK: Final = "consume_stock"
 SERVICE_SCAN: Final = "scan"
 SERVICE_READ_BEST_BEFORE: Final = "read_best_before"
+SERVICE_READ_BARCODE: Final = "read_barcode"
 
 ATTR_CONFIG_ENTRY_ID: Final = "config_entry_id"
 ATTR_BARCODE: Final = "barcode"

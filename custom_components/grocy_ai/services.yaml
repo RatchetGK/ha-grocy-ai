@@ -112,3 +112,16 @@ read_best_before:
       selector:
         config_entry:
           integration: grocy_ai
+
+read_barcode:
+  fields:
+    image:
+      required: true
+      selector:
+        media:
+          accept:
+            - image/*
+    config_entry_id:
+      selector:
+        config_entry:
+          integration: grocy_ai

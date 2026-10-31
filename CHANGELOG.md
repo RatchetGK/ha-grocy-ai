@@ -6,6 +6,17 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-31
+### Added
+- Sidebar page **Grocy AI** for the phone (all users): Purchased/Used, barcode,
+  amount, best-before date. The camera buttons open the phone camera directly.
+- Barcode from a photo: the browser's own barcode reader is used when
+  available, otherwise the new service `grocy_ai.read_barcode` (AI Task). Only
+  numbers with a valid EAN/UPC check digit are accepted.
+- Photo upload endpoint `/api/grocy_ai/photo` (HA login required) and media
+  source `media-source://grocy_ai/…`: photos stay in memory only, expire after
+  10 minutes and are deleted right after the AI has read them.
+
 ## [0.4.0] - 2026-10-29
 ### Added
 - Best-before date from a photo via Home Assistant's AI Task: new service

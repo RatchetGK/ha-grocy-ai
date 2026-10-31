@@ -14,7 +14,8 @@ PLAN.md nachziehen, Änderungen pro Version in CHANGELOG.md.
 ```
 custom_components/grocy_ai/   Integration (Domain grocy_ai)
   __init__.py  config_flow.py  api.py  const.py  manifest.json
-  strings.json translations/{en,de}.json  (später: services.py, coordinator.py, ai.py, shopping.py, sensor.py, services.yaml)
+  strings.json translations/{en,de}.json  services.py services.yaml ai.py
+  photos.py media_source.py frontend/grocy-ai-panel.js  (später: coordinator.py, shopping.py, sensor.py)
 tests/                        pytest-homeassistant-custom-component
 scripts/check_private_data.py Secret-/Datenschutz-Scan (Hooks, CI, Skill)
 .githooks/                    pre-commit, commit-msg, pre-push

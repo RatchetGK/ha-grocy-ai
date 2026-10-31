@@ -84,6 +84,9 @@ flowchart LR
 | `shopping.py` | Bring!-/To-do-Abgleich ohne Duplikate |
 | `sensor.py` | Zählsensoren (ablaufend, abgelaufen, unter Mindestbestand) |
 | `const.py` | Konstanten, Event-Namen, Options-Keys |
+| `photos.py` | Foto-Upload `/api/grocy_ai/photo` (nur angemeldet) + flüchtiger Speicher im RAM |
+| `media_source.py` | Medienquelle `media-source://grocy_ai/<id>` → liefert hochgeladene Fotos an AI Task |
+| `frontend/grocy-ai-panel.js` | Seitenleisten-Seite „Grocy AI“ fürs Handy (Web Component ohne Build) |
 
 ## 4. Datenfluss
 
@@ -150,6 +153,7 @@ Stabile Schnittstelle für Tablet-App und Taster. Änderungen = SemVer-Minor
 | `grocy_ai.consume_stock` ✅ v0.2.0 | `barcode`/`product_id` (genau eins), `amount` (Std. 1), `spoiled` (Std. false), `config_entry_id` (opt.) | `{product_id, product_name, barcode, amount, spoiled, stock_amount}` |
 | `grocy_ai.scan` ✅ v0.2.0 | `barcode`, `mode: plus\|minus`, `amount`, `config_entry_id` (opt.); `image` (opt., ab v0.4.0) | wie add/consume – Komfort-Service für Taster/Tablet |
 | `grocy_ai.read_best_before` ✅ v0.4.0 | `image` (Media-Selector), `config_entry_id` (opt.) | `{recognized: true, best_before_date, product_name, confidence}` bzw. `{recognized: false, best_before_date: null, reason}` – nur Erkennung, keine Buchung |
+| `grocy_ai.read_barcode` ✅ v0.5.0 | `image`, `config_entry_id` (opt.) | `{recognized: true, barcode}` bzw. `{recognized: false, barcode: null, reason}` (`no_barcode`, `invalid_barcode`, `low_confidence`, …) – nur GTIN mit gültiger Prüfziffer |
 | `grocy_ai.sync_shopping_list` | – | `{added: [...], skipped: [...]}` |
 | `grocy_ai.check_expiring` | `days` (opt.), `notify` (Std. true) | `{expiring: [...], expired: [...]}` |
 
@@ -188,6 +192,7 @@ Stabile Schnittstelle für Tablet-App und Taster. Änderungen = SemVer-Minor
 | D12 | Lizenz MIT | Standard für HACS-Integrationen. |
 | D13 | **Repo öffentlich, Historie neu gestartet** (2026-10-25) | HACS braucht ein dauerhaft öffentliches Repo. Das zwischenzeitlich private Repo enthielt private Angaben (interne IP, Vornamen in Entitäts-IDs) in alten Commits; auf GitHub lassen sich alte Commits nicht sicher entfernen → altes Repo in `ha-grocy-ai-old` umbenannt (privat), neues öffentliches Repo mit einem sauberen Initial-Commit. Release enthält zusätzlich `grocy_ai.zip`. |
 | D16 | **MHD-Erkennung blockiert nie die Buchung**; Schwelle `confidence ≥ 0.5`, plausibel = heute − 30 Tage … heute + 15 Jahre; Monat ohne Tag = Monatsende; manuelles MHD hat Vorrang vor Foto | Ein Einkauf soll immer gebucht werden; ein falsch erkanntes Datum ist schlimmer als die Standard-Haltbarkeit; Monatsende entspricht der Bedeutung von „MHD 12/2026“. |
+| D17 | **Handy-Seite als eigenes Sidebar-Panel** (Web Component, kein Build) statt Dashboard-Karte; Fotos per `<input capture>` (öffnet direkt die Kamera), auf dem Handy auf 1600 px verkleinert, Upload an eigenen HTTP-Endpunkt, Weitergabe an AI Task über eigene Medienquelle; Fotos nur im RAM (max. 10, 10 min, nach KI-Abfrage gelöscht). Barcode zuerst per Browser-`BarcodeDetector`, sonst AI Task mit Prüfziffer-Check | Upload über den Media-Selector ist am Handy umständlich; `capture` funktioniert in Browser und Companion-App ohne Kamera-Rechte-Dialog für Live-Video; keine Fotos auf der Platte/in den Medien (Privatsphäre); der native Scanner der Companion-App ist für Custom-Panels nicht nutzbar (Listener nur intern im Frontend). |
 | D15 | **Unbekannte Barcodes über Grocys eingebauten Barcode-Lookup** (`external-lookup?add=true`, Plugin Open Food Facts) statt eigenem OFF-Client; Option `external_barcode_lookup` (Std. an), nur bei Plus | Kostenlos, kein Key; nutzt Grocys Produkt-Voreinstellungen (Lagerort/Einheit) wie die Grocy-UI; keine zusätzliche Abhängigkeit; Minus darf nie Produkte anlegen. |
 | D14 | **Datenschutz-Schutzschichten**: Skill `commit-push`, Git-Hooks (`.githooks`: pre-commit, commit-msg, pre-push) mit `scripts/check_private_data.py`, untracked Denylist `.local/private-terms.txt`, CI-Job „Secrets & private data“ (Skript + gitleaks) | Öffentliches Repo: Secrets/private Daten dürfen nie committet werden; mehrere unabhängige Prüfungen vor Commit, vor Push und nach Push. |
 
@@ -226,12 +231,16 @@ Stabile Schnittstelle für Tablet-App und Taster. Änderungen = SemVer-Minor
 - **Ergebnis:** `ai.py` + Service `read_best_before`, `image` in `add_stock`/`scan`,
   50 Tests grün (Parsing, Plausibilität, gemocktes `ai_task.generate_data`).
 
-### M4 – Ablauf-Benachrichtigungen & Sensoren (v0.5.0)
+### M3b – Handy-Seite mit Kamera (v0.5.0) ✅ umgesetzt 2026-10-31 (Live-Abnahme offen)
+- Sidebar-Panel, Foto-Upload, Medienquelle, `read_barcode`.
+- **Abnahme:** Am Handy (Companion-App) Barcode und MHD per Kamera → Buchung in Grocy mit `best_before_source: ai`.
+
+### M4 – Ablauf-Benachrichtigungen & Sensoren (v0.6.0)
 - Coordinator, Sensoren, tägliche Benachrichtigung, `check_expiring`.
 - **Abnahme:** Produkt mit MHD in < N Tagen → genau eine Benachrichtigung pro
   Tag auf dem gewählten Notify-Dienst.
 
-### M5 – Bring!-Sync (v0.6.0)
+### M5 – Bring!-Sync (v0.7.0)
 - Mindestbestand/leer → To-do-Entität, ohne Duplikate, Store für Zustand.
 - **Abnahme:** Produkt unter Mindestbestand erscheint genau einmal auf Bring!;
   wiederholte Läufe erzeugen keine Duplikate.

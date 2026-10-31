@@ -13,8 +13,9 @@ AI and automation inside Home Assistant. Grocy stays the source of truth.
 | Book stock by barcode (plus / minus) | ✅ v0.2.0 |
 | Unknown barcodes are created automatically via Open Food Facts (through Grocy) | ✅ v0.3.0 |
 | Best-before date from a photo via HA **AI Task** (provider-agnostic) | ✅ v0.4.0 |
-| Notifications for products expiring soon | 🔜 v0.5.0 |
-| Products below minimum stock → Bring! (any to-do entity), no duplicates | 🔜 v0.6.0 |
+| Phone page in the sidebar: camera for barcode and best-before date | ✅ v0.5.0 |
+| Notifications for products expiring soon | 🔜 v0.6.0 |
+| Products below minimum stock → Bring! (any to-do entity), no duplicates | 🔜 v0.7.0 |
 | Stable services & events for a kitchen tablet / Zigbee buttons | ✅ v0.2.0 (extended later) |
 
 Planned services/events: see [PLAN.md §5](PLAN.md#5-schnittstelle-services--events).
@@ -57,6 +58,18 @@ Updates appear in HACS automatically when a new release is published.
 API keys are stored only in Home Assistant's config entry – never in this
 repository.
 
+## Phone page
+After setup a **Grocy AI** entry appears in the sidebar (also in the
+Companion app):
+1. Choose **Purchased (+)** or **Used (−)**.
+2. **📷 Photo** next to the barcode opens the camera; the barcode is read by the
+   browser (if supported) or by AI Task. Typing or a hardware scanner works too.
+3. For purchases optionally **📷 Photograph best-before date** (or enter a date).
+4. **Book** – the result shows product, new stock and best-before date.
+
+Photos are scaled down on the phone, kept only in Home Assistant's memory and
+deleted right after the AI has read them (at the latest after 10 minutes).
+
 ## Services
 | Service | Purpose |
 |---|---|
@@ -64,6 +77,7 @@ repository.
 | `grocy_ai.consume_stock` | Used up: stock −amount (optional `spoiled`) |
 | `grocy_ai.scan` | Barcode + `mode: plus/minus` – for buttons and tablets |
 | `grocy_ai.read_best_before` | Read the best-before date from a photo (no booking) |
+| `grocy_ai.read_barcode` | Read the barcode number from a photo (no booking, check digit verified) |
 
 All services return a response (product, amount, best-before date and its
 source, new stock amount, whether the product was just created) and fire
