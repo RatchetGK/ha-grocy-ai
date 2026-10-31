@@ -62,7 +62,7 @@ Erledigtes abhaken, neue Erkenntnisse sofort unter „Erkenntnisse“ eintragen.
 - [x] Service `read_best_before`; `image` in `add_stock`/`scan`
 - [x] Tests (gemocktes `ai_task.generate_data`) – 50 grün
 - [x] Release v0.4.0, HACS-Update + Neustart (mit Freigabe), 4 Dienste registriert, keine Log-Fehler
-- [ ] Nutzer: AI-Task-Entität in den Optionen wählen (sonst HA-Standard; ohne Standard → `ai_error`, Buchung mit Standard-Haltbarkeit)
+- [x] Nutzer: AI-Task-Entität in den Optionen gewählt
 - [ ] Abnahme mit echten Fotos (Kamera / Upload)
 
 ## M3b – Handy-Seite mit Kamera (v0.5.0)
@@ -71,7 +71,7 @@ Erledigtes abhaken, neue Erkenntnisse sofort unter „Erkenntnisse“ eintragen.
 - [x] Service `read_barcode` (AI Task + GTIN-Prüfziffer)
 - [x] Panel `frontend/grocy-ai-panel.js` (Plus/Minus, Barcode-Foto, MHD-Foto/Datum, Ergebnis), de/en
 - [x] Tests (Upload, Auth, Medienquelle, Löschen, Barcode)
-- [ ] Release v0.5.0, HACS-Update + Neustart (nach Freigabe)
+- [x] Release v0.5.0, HACS-Update + Neustart (mit Freigabe), 5 Dienste registriert, Panel-Datei erreichbar, Upload ohne Login → 401, keine Log-Fehler
 - [ ] Abnahme am Handy (Companion-App): Kamera öffnet, Barcode erkannt, MHD erkannt
 - [ ] Später prüfen: Live-Scan per Kamera-Video (`getUserMedia`) statt Foto
 
@@ -120,3 +120,4 @@ Erledigtes abhaken, neue Erkenntnisse sofort unter „Erkenntnisse“ eintragen.
 - 2026-10-29: Live-Test bestätigt: per OFF angelegtes Produkt ohne Standard-Haltbarkeit → `best_before_source: unset`, MHD 2999-12-31 (wie geplant). Nutzer sollte Standard-Haltbarkeit in Grocy nachtragen.
 - 2026-10-29: HA 2026.10 validiert Service-Schemas intern mit `probatio` statt voluptuous; voluptuous-Schemas in Custom Integrations funktionieren weiter. `ai_task` löst `media-source://camera/<entity>` selbst als Schnappschuss auf.
 - 2026-10-31: Nutzer: Foto-Upload am Handy über den Media-Selector zu umständlich → eigene Handy-Seite (v0.5.0); M4/M5 rutschen auf v0.6.0/v0.7.0. `ai_task` in HA 2026.10 löst Anhänge (außer `camera/`/`image/`) per `media_source.async_resolve_media` auf und verlangt `PlayMedia.path` (lokale Datei) → Temp-Datei, nach der KI-Abfrage gelöscht. `media_source.async_get_media_image` gibt es erst nach 2026.10 (CI-Fehler). Berechtigungsprüfung nur für `camera/`- und `image/`-Quellen. Der native Barcode-Scanner der Companion-App (`bar_code/scan`) liefert Ergebnisse nur an frontend-interne Listener → für Custom-Panels nicht nutzbar.
+- 2026-10-31: Nach dem Neustart steht `grocy_ai` ca. 1–2 min auf `not_loaded` (HA-Start auf dem Pi, Zustand `NOT_RUNNING`) – kein Fehler, abwarten.
