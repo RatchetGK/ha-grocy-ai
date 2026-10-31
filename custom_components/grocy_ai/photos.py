@@ -143,12 +143,15 @@ class PhotoUploadView(HomeAssistantView):
             return self.json_message("Only images are accepted", HTTPStatus.BAD_REQUEST)
         if request.content_length and request.content_length > MAX_PHOTO_BYTES:
             return self.json_message("Photo too large", HTTPStatus.REQUEST_ENTITY_TOO_LARGE)
-        content = await request.content.read(MAX_PHOTO_BYTES + 1)
+        # Read the whole body; a single read() only returns what has arrived so far.
+        content = bytearray()
+        async for chunk in request.content.iter_chunked(64 * 1024):
+            content.extend(chunk)
+            if len(content) > MAX_PHOTO_BYTES:
+                return self.json_message("Photo too large", HTTPStatus.REQUEST_ENTITY_TOO_LARGE)
         if not content:
             return self.json_message("Empty photo", HTTPStatus.BAD_REQUEST)
-        if len(content) > MAX_PHOTO_BYTES:
-            return self.json_message("Photo too large", HTTPStatus.REQUEST_ENTITY_TOO_LARGE)
-        photo_id = hass.data[DATA_PHOTOS].add(content, mime_type)
+        photo_id = hass.data[DATA_PHOTOS].add(bytes(content), mime_type)
         return self.json(
             {
                 "media_content_id": f"{MEDIA_SOURCE_PREFIX}{photo_id}",

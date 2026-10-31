@@ -18,7 +18,8 @@ from .conftest import GROCY_URL, MOCK_CONFIG, SYSTEM_INFO
 from .test_ai import mock_ai_task
 
 API = f"{GROCY_URL}/api"
-JPEG = b"\xff\xd8\xff\xe0fake-jpeg"
+# Large enough to arrive in several chunks (a truncated upload must fail the test).
+JPEG = b"\xff\xd8\xff\xe0" + bytes(range(256)) * 2400
 
 
 @pytest.fixture

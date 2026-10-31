@@ -6,6 +6,18 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-10-31
+### Fixed
+- Photo upload read only the first part of larger photos; the AI provider
+  rejected the truncated image (e.g. Google: `400 INVALID_ARGUMENT`).
+
+### Changed
+- The phone page opens a live camera view with a shutter button (the
+  Companion app ignored `capture` and only showed the gallery). Barcodes are
+  detected live without taking a photo when the browser supports it. The
+  live camera needs Home Assistant via HTTPS; over plain HTTP the page falls
+  back to picking a photo and shows a hint.
+
 ## [0.5.0] - 2026-10-31
 ### Added
 - Sidebar page **Grocy AI** for the phone (all users): Purchased/Used, barcode,

@@ -72,8 +72,10 @@ Erledigtes abhaken, neue Erkenntnisse sofort unter „Erkenntnisse“ eintragen.
 - [x] Panel `frontend/grocy-ai-panel.js` (Plus/Minus, Barcode-Foto, MHD-Foto/Datum, Ergebnis), de/en
 - [x] Tests (Upload, Auth, Medienquelle, Löschen, Barcode)
 - [x] Release v0.5.0, HACS-Update + Neustart (mit Freigabe), 5 Dienste registriert, Panel-Datei erreichbar, Upload ohne Login → 401, keine Log-Fehler
+- [x] Erster Handy-Test (2026-10-31): Buchung + OFF-Anlage ok; Fehler 1: Google `400 INVALID_ARGUMENT` (abgeschnittener Upload) → v0.5.1; Fehler 2: Companion-App öffnet nur Galerie → Live-Kamera v0.5.1
+- [ ] Release v0.5.1, HACS-Update + Neustart (nach Freigabe)
+- [ ] Nutzer: HA per HTTPS erreichbar machen (Voraussetzung Live-Kamera) – Weg klären
 - [ ] Abnahme am Handy (Companion-App): Kamera öffnet, Barcode erkannt, MHD erkannt
-- [ ] Später prüfen: Live-Scan per Kamera-Video (`getUserMedia`) statt Foto
 
 ## M4 – Ablauf-Benachrichtigungen & Sensoren (v0.6.0)
 - [ ] `coordinator.py` (Polling `/stock/volatile`)
@@ -121,3 +123,5 @@ Erledigtes abhaken, neue Erkenntnisse sofort unter „Erkenntnisse“ eintragen.
 - 2026-10-29: HA 2026.10 validiert Service-Schemas intern mit `probatio` statt voluptuous; voluptuous-Schemas in Custom Integrations funktionieren weiter. `ai_task` löst `media-source://camera/<entity>` selbst als Schnappschuss auf.
 - 2026-10-31: Nutzer: Foto-Upload am Handy über den Media-Selector zu umständlich → eigene Handy-Seite (v0.5.0); M4/M5 rutschen auf v0.6.0/v0.7.0. `ai_task` in HA 2026.10 löst Anhänge (außer `camera/`/`image/`) per `media_source.async_resolve_media` auf und verlangt `PlayMedia.path` (lokale Datei) → Temp-Datei, nach der KI-Abfrage gelöscht. `media_source.async_get_media_image` gibt es erst nach 2026.10 (CI-Fehler). Berechtigungsprüfung nur für `camera/`- und `image/`-Quellen. Der native Barcode-Scanner der Companion-App (`bar_code/scan`) liefert Ergebnisse nur an frontend-interne Listener → für Custom-Panels nicht nutzbar.
 - 2026-10-31: Nach dem Neustart steht `grocy_ai` ca. 1–2 min auf `not_loaded` (HA-Start auf dem Pi, Zustand `NOT_RUNNING`) – kein Fehler, abwarten.
+- 2026-10-31: `request.content.read(n)` (aiohttp) liefert nur die bereits empfangenen Bytes → große Uploads abgeschnitten; ganzen Body per `iter_chunked` lesen. Test nutzt jetzt ~600 KB.
+- 2026-10-31: Companion-App (Android) ignoriert `capture` am Datei-Input → nur Galerie. Live-Kamera per `getUserMedia` geht nur in sicherem Kontext (HTTPS/localhost); die lokale HA-Instanz läuft per HTTP.
